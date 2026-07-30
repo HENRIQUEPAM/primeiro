@@ -1,3 +1,29 @@
+# Suítes de verificação
+
+Duas suítes, ambas em JVM pura:
+
+- **`Verify.kt`** — pipeline de reconhecimento facial (25 asserções). Precisa
+  dos stubs em `stubs/`.
+- **`VerifyCall.kt`** — módulo de chamadas (53 asserções). **Não precisa de
+  stub nenhum**: `CallModels`, `CallStateMachine`, `SignalingProtocol` e
+  `AutoAnswerPolicy` são Kotlin puro, sem dependência de Android.
+
+```bash
+# Módulo de chamadas
+$KOTLINC -nowarn -d /tmp/out \
+    app/src/main/java/com/portaretrato/app/call/CallModels.kt \
+    app/src/main/java/com/portaretrato/app/call/CallStateMachine.kt \
+    app/src/main/java/com/portaretrato/app/call/SignalingProtocol.kt \
+    app/src/main/java/com/portaretrato/app/call/AutoAnswerPolicy.kt \
+    tools/verification/VerifyCall.kt
+java -cp "/tmp/out:$(dirname $KOTLINC)/../lib/kotlin-stdlib.jar" VerifyCallKt
+```
+
+`WebRtcEngine.kt` e `FirestoreSignaling.kt` ficam de fora: dependem de
+bibliotecas reais e não foram compilados. Ver `docs/CHAMADAS.md`.
+
+---
+
 # Suíte de verificação do pipeline de reconhecimento
 
 Roda na JVM, **sem SDK do Android e sem emulador**. Serve para validar a parte
