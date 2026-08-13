@@ -1,0 +1,21 @@
+# Android / Gradle
+*.iml
+.gradle/
+local.properties
+.idea/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Firebase: NAO versione. Contem a configuracao do seu projeto.
+google-services.json
+firebase/functions/node_modules/
+.firebase/
+
+# SO
+.DS_Store

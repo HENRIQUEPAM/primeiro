@@ -1,0 +1,11 @@
+{
+  "name": "portaretrato-call-functions",
+  "description": "Push de chamada recebida para o Porta Retrato",
+  "main": "index.js",
+  "engines": { "node": "20" },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.1.0"
+  },
+  "private": true
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.PortaRetratoChamadas" parent="Theme.Material3.DayNight">
+        <item name="android:statusBarColor" tools:targetApi="21">@color/call_background</item>
+    </style>
+
+    <!-- 96dp de altura: alvo de toque confortavel para maos com tremor. -->
+    <style name="CallPrimaryButtonBase" parent="Widget.Material3.Button">
+        <item name="android:layout_width">150dp</item>
+        <item name="android:layout_height">96dp</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/call_text</item>
+        <item name="cornerRadius">24dp</item>
+    </style>
+
+    <style name="CallPositiveButton" parent="CallPrimaryButtonBase">
+        <item name="backgroundTint">@color/answer_green</item>
+    </style>
+
+    <style name="CallDangerButton" parent="CallPrimaryButtonBase">
+        <item name="backgroundTint">@color/decline_red</item>
+    </style>
+
+    <style name="CallSecondaryButton" parent="Widget.Material3.Button">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/call_text</item>
+        <item name="backgroundTint">@color/secondary_button</item>
+        <item name="cornerRadius">16dp</item>
+    </style>
+</resources>

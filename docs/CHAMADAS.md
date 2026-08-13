@@ -32,40 +32,48 @@ não permite conexão direta. Não passam pelo Firebase e não geram custo lá.
 
 ## Arquivos entregues
 
-Em `app/src/main/java/com/portaretrato/app/call/`:
+Projeto Android completo e buildável. Ver [`COMO-RODAR.md`](../COMO-RODAR.md).
 
-| Arquivo | Papel | Verificado |
-| --- | --- | --- |
-| `CallModels.kt` | Estados, papéis, convite, configuração de ICE | ✅ compila |
-| `CallStateMachine.kt` | Transições válidas de uma chamada | ✅ 20 testes |
-| `SignalingProtocol.kt` | Serialização das mensagens (independe de transporte) | ✅ 15 testes |
-| `AutoAnswerPolicy.kt` | Decide atender sozinho / tocar / recusar | ✅ 18 testes |
-| `FirestoreSignaling.kt` | Transporte sobre Firestore | ⚠️ não compilado contra o SDK |
-| `WebRtcEngine.kt` | `PeerConnection`, mídia, ICE | ⚠️ não compilado contra a lib |
+**Lógica pura** (Kotlin sem dependência de Android — 53 asserções passam):
 
-Os quatro primeiros são Kotlin puro, sem dependência de Android — rodam em
-`tools/verification/VerifyCall.kt` na JVM. **53 asserções passam.**
+| Arquivo | Papel |
+| --- | --- |
+| `CallModels.kt` | Estados, papéis, convite, configuração de ICE |
+| `CallStateMachine.kt` | Transições válidas de uma chamada |
+| `SignalingProtocol.kt` | Serialização das mensagens |
+| `AutoAnswerPolicy.kt` | Decide atender sozinho / tocar / recusar |
 
-Os dois últimos dependem de bibliotecas que não consegui obter neste ambiente
-(ver [Por que não há APK](#por-que-não-há-apk)); as assinaturas seguem a API
-documentada, mas **precisam ser conferidas contra as versões que você fixar**.
+**Camada Android** (sintaxe verificada; não compilada contra as bibliotecas):
 
-## O que ainda falta implementar
+| Arquivo | Papel |
+| --- | --- |
+| `WebRtcEngine.kt` | `PeerConnection`, mídia, ICE, teardown |
+| `FirestoreSignaling.kt` | Transporte da sinalização |
+| `CallController.kt` | Junta máquina de estados + engine + sinalização |
+| `CallService.kt` | Foreground service que hospeda a chamada |
+| `IncomingCallWatcher.kt` | Chamada recebida **sem depender da Cloud Function** |
+| `CallMessagingService.kt` | Push (FCM) para quando o app está morto |
+| `FcmTokenRegistrar.kt` | Registra o token em `users/{uid}/fcmTokens` |
+| `CallNotifications.kt` | Canais + notificação `CallStyle` |
+| `TrustedContactsStore.kt` | Contatos de confiança, local |
+| `ui/CallActivity.kt` | Tela de chamada |
+| `ui/HomeActivity.kt` | Tela inicial, discagem e contatos |
 
-Não escrevi estes porque dependem fortemente do código existente do app (tema,
-`SlideshowActivity`, `PortaRetratoApp`), que não tenho:
+**Infra:** `firebase/firestore.rules`, `firebase/firestore.indexes.json`,
+`firebase/functions/index.js`, layouts, temas e strings em português.
 
-1. **`CallService`** — foreground service `camera|microphone` que hospeda a
-   chamada. Precisa sobreviver à Activity: se a chamada morre ao girar a tela,
-   é porque ficou na Activity.
-2. **`CallMessagingService : FirebaseMessagingService`** — recebe o push,
-   decodifica o convite com `SignalingProtocol.decode`, consulta
-   `AutoAnswerPolicy` e inicia o service.
-3. **`CallActivity`** — dois `SurfaceViewRenderer` (remoto em tela cheia, local
-   num canto), botões grandes. Para idoso: alvos de 72 dp, "Atender" verde e
-   "Desligar" vermelho, sem ícones ambíguos.
-4. **Tela de configuração** de contatos de confiança (quem pode auto-atender).
-5. **Registro do token FCM** em `users/{uid}/fcmTokens`.
+### Dois caminhos para a chamada recebida
+
+Implementei os dois de propósito:
+
+1. **`IncomingCallWatcher`** — escuta o Firestore direto. Funciona **sem deploy
+   nenhum**: basta o Firebase configurado e dois aparelhos. É o que permite
+   testar hoje.
+2. **`CallMessagingService`** — push de alta prioridade. Necessário quando o
+   app foi morto pelo sistema, porque aí nenhum listener roda.
+
+Ambos convergem para `CallService.incoming`, e a `AutoAnswerPolicy` descarta a
+entrega duplicada quando os dois disparam.
 
 ## Integração
 
@@ -270,24 +278,20 @@ central/AGP ........... 404 (não é publicado no Central)
 Foi por isso que verifiquei o que dava para verificar de verdade: a lógica pura
 compila com `kotlinc` e passa em 53 asserções.
 
-## Para eu conseguir entregar um APK
+## Para eu conseguir entregar o APK compilado
 
-Preciso de:
+Agora só falta **um ambiente com acesso ao `dl.google.com`**. O projeto está
+completo: com o SDK disponível, `./gradlew assembleDebug` gera o APK.
 
-1. **O projeto Gradle completo** (repositório ou zip) — sem isso não há o que
-   compilar.
-2. **`google-services.json`** do seu projeto Firebase.
-3. **Credenciais de TURN**, ou autorização para configurar um coturn.
-4. **Um ambiente com acesso a `dl.google.com`**, ou que você rode o build.
+Se você rodar o build e algo quebrar, me mande o erro do Gradle. O candidato
+mais provável é uma assinatura do WebRTC em `WebRtcEngine.kt` —
+`DefaultVideoEncoderFactory`, `addTrack` e `onTrack` mudaram entre versões da
+biblioteca.
 
-Com (1) e (2) eu integro tudo, subo a Cloud Function, ajusto as regras do
-Firestore e deixo o branch pronto para `./gradlew assembleDebug`. Com (4)
-também, eu mesmo gero e entrego o APK assinado em debug.
-
-Se preferir validar antes de mexer no app de produção, uma alternativa é eu
-montar um **projeto Android mínimo e independente** — duas telas, só a chamada —
-para você compilar e testar com dois aparelhos. Continua exigindo que você rode
-o build, mas é bem menor para revisar.
+Para **integrar no Porta Retrato de produção** (em vez de rodar como app
+separado), preciso do projeto Gradle dele. Aí o trabalho é: copiar o pacote
+`call/`, mesclar o manifesto, trocar o login anônimo pelo Google que o app já
+usa, e trocar a lista de contatos pela lista de `Person` existente.
 
 ## Estimativa até produção
 

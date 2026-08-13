@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="call_background">#FF101418</color>
+    <color name="call_text">#FFFFFFFF</color>
+    <color name="call_text_secondary">#FFB9C3CC</color>
+    <!-- Verde = atender, vermelho = desligar. Sem excecao, sem outras cores
+         fortes competindo na tela. -->
+    <color name="answer_green">#FF1B8E3D</color>
+    <color name="decline_red">#FFC62828</color>
+    <color name="secondary_button">#FF37474F</color>
+</resources>

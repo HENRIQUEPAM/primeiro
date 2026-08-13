@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Tokens do FCM: cada usuario so mexe nos seus.
+    match /users/{uid}/fcmTokens/{token} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /calls/{callId} {
+      // Somente os dois participantes.
+      allow read: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+
+      // Quem cria a chamada tem de ser quem diz ser.
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.sdp is string;
+
+      // Quem recebe so escreve answer e encerramento. Sem esta restricao ele
+      // poderia sobrescrever fromUid e sequestrar a identidade da chamada.
+      allow update: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid)
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toUid == resource.data.toUid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['answerSdp', 'answeredAt', 'ended', 'reason', 'endedAt']);
+
+      allow delete: if request.auth != null
+        && resource.data.fromUid == request.auth.uid;
+
+      match /candidates/{candidateId} {
+        // Candidatos ICE sao efemeros e inuteis fora da chamada; exigir
+        // autenticacao basta.
+        allow read, create, delete: if request.auth != null;
+      }
+    }
+  }
+}

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Porta Retrato Chamadas</string>
+
+    <!-- Tela inicial -->
+    <string name="my_code_label">Meu código (passe para quem vai ligar)</string>
+    <string name="signing_in">Entrando…</string>
+    <string name="copy_code">Copiar código</string>
+    <string name="peer_code_hint">Código de quem você quer chamar</string>
+    <string name="start_call">Ligar</string>
+    <string name="trusted_contacts">Contatos de confiança</string>
+    <string name="no_contacts">Nenhum contato ainda. Toque em Adicionar.</string>
+    <string name="add_contact">Adicionar contato</string>
+    <string name="contact_name_hint">Nome</string>
+    <string name="contact_code_hint">Código do contato</string>
+    <string name="auto_answer_checkbox">Atender automaticamente</string>
+    <string name="auto_answer_warning">Com isto ligado, a chamada desta pessoa é atendida sozinha após 3 segundos, abrindo câmera e microfone. Ative apenas para quem você confia totalmente.</string>
+    <string name="auto_answer_on"> — atende sozinho</string>
+    <string name="enable_auto_answer">Ativar atendimento automático</string>
+    <string name="disable_auto_answer">Desativar atendimento automático</string>
+    <string name="remove_contact">Remover contato</string>
+    <string name="save">Salvar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="fill_all_fields">Preencha nome e código.</string>
+    <string name="enter_code">Digite o código de quem você quer chamar.</string>
+    <string name="cannot_call_self">Você não pode ligar para si mesmo.</string>
+    <string name="code_copied">Código copiado.</string>
+    <string name="sign_in_failed">Falha ao entrar</string>
+    <string name="sign_in_failed_hint">Verifique o google-services.json e ative o login Anônimo no Firebase.</string>
+
+    <!-- Chamada -->
+    <string name="incoming_call_title">Chamada recebida</string>
+    <string name="ongoing_call_title">Chamada em andamento</string>
+    <string name="unknown_caller">Desconhecido</string>
+    <string name="answer">Atender</string>
+    <string name="decline">Recusar</string>
+    <string name="hang_up">Desligar</string>
+    <string name="mute">Sem som</string>
+    <string name="unmute">Com som</string>
+    <string name="switch_camera">Virar câmera</string>
+    <string name="calling">Chamando…</string>
+    <string name="connecting">Conectando…</string>
+    <string name="connected">Conectado</string>
+    <string name="reconnecting">Conexão instável, tentando voltar…</string>
+    <string name="auto_answering_in">Atendendo em %1$d…</string>
+    <string name="permissions_required">Precisa liberar câmera e microfone.</string>
+
+    <!-- Fim de chamada -->
+    <string name="ended">Chamada encerrada</string>
+    <string name="ended_remote">A outra pessoa desligou</string>
+    <string name="ended_rejected">Chamada recusada</string>
+    <string name="ended_no_answer">Ninguém atendeu</string>
+    <string name="ended_busy">Ocupado</string>
+    <string name="ended_connection_failed">Não foi possível conectar</string>
+</resources>
