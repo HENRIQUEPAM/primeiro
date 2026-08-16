@@ -70,4 +70,11 @@ dependencies {
     implementation(libs.firebase.messaging)
 
     implementation(libs.webrtc)
+
+    // Pipeline de reconhecimento facial (pacote `recognition/`). Nao e usado
+    // pelas telas de chamada, mas os fontes vivem na mesma source set e
+    // portanto sao compilados junto.
+    implementation(libs.mlkit.face.detection)
+    implementation(libs.tensorflow.lite)
+    implementation(libs.androidx.exifinterface)
 }
