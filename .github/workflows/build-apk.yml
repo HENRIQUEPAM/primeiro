@@ -1,0 +1,63 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - 'claude/**'
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # O plugin google-services falha o build sem este arquivo.
+      # Se você cadastrar o segredo GOOGLE_SERVICES_JSON no repositório
+      # (Settings > Secrets and variables > Actions), o APK sai conectado ao seu
+      # Firebase de verdade. Sem o segredo, geramos um arquivo estruturalmente
+      # válido só para o build passar: o APK instala e abre, mas não autentica
+      # nem sinaliza — serve para conferir telas, permissões e layout.
+      - name: Preparar google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            echo "::notice::Usando google-services.json do segredo do repositório."
+          else
+            cp .github/google-services.placeholder.json app/google-services.json
+            echo "::warning::Sem o segredo GOOGLE_SERVICES_JSON. APK gerado com Firebase de mentira: instala e abre, mas não faz chamada."
+          fi
+
+      - name: Build debug
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Publicar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: portaretrato-chamadas-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar relatórios em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-build
+          path: |
+            app/build/reports/
+            build/reports/
+          if-no-files-found: ignore
