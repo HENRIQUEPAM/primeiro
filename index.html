@@ -99,6 +99,19 @@
     accent-color: var(--accent);
     background: transparent;
   }
+  .sel { display: block; margin-bottom: 12px; }
+  .sel > span { display: block; font-size: 0.92rem; margin-bottom: 5px; }
+  .sel select {
+    width: 100%;
+    font: inherit;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+  }
+  .sel select:disabled { color: var(--muted); }
+  #devInfo { margin: 0; }
   .presets { display: flex; flex-wrap: wrap; gap: 8px; }
   .presets button { flex: 1 1 auto; font-size: 0.9rem; padding: 9px 10px; }
   .presets button[aria-pressed="true"] {
@@ -181,6 +194,19 @@
   </div>
 
   <div class="card">
+    <h2>Dispositivos</h2>
+    <label class="sel">
+      <span>Entrada (microfone)</span>
+      <select id="inDev"><option value="">Padrão do sistema</option></select>
+    </label>
+    <label class="sel">
+      <span>Saída (fone)</span>
+      <select id="outDev" disabled><option value="">Padrão do sistema</option></select>
+    </label>
+    <p class="sub" id="devInfo">Ligue para ver e escolher os dispositivos.</p>
+  </div>
+
+  <div class="card">
     <h2>Microfone</h2>
     <div class="toggles">
       <label class="toggle">
@@ -227,7 +253,10 @@
   const CROSS_HIGH = 3000;  // Hz — separa médios de agudos
   const CEILING_DB = -6;    // teto do limitador, em dBFS
 
+  const inDev = $("inDev"), outDev = $("outDev"), devInfo = $("devInfo");
+
   const state = { ctx: null, stream: null, raf: 0, muted: false, hotSince: 0 };
+  const prefs = { inId: "", outId: "" };
   let nodes = null;
 
   const dbToGain = (db) => Math.pow(10, db / 20);
@@ -419,6 +448,93 @@
     }
   }
 
+  function loadPrefs() {
+    try {
+      prefs.inId = localStorage.getItem("fa.inDev") || "";
+      prefs.outId = localStorage.getItem("fa.outDev") || "";
+    } catch (_) { /* modo privado, sem storage: segue com o padrão */ }
+    inDev.value = prefs.inId;
+    outDev.value = prefs.outId;
+  }
+
+  function savePrefs() {
+    try {
+      localStorage.setItem("fa.inDev", prefs.inId);
+      localStorage.setItem("fa.outDev", prefs.outId);
+    } catch (_) { /* idem */ }
+  }
+
+  function fillSelect(sel, list, chosen, fallbackName) {
+    const keep = sel.value;
+    sel.textContent = "";
+    const def = document.createElement("option");
+    def.value = "";
+    def.textContent = "Padrão do sistema";
+    sel.appendChild(def);
+    list.forEach((d, i) => {
+      const o = document.createElement("option");
+      o.value = d.deviceId;
+      o.textContent = d.label || fallbackName + " " + (i + 1);
+      sel.appendChild(o);
+    });
+    const wanted = chosen || keep;
+    sel.value = list.some((d) => d.deviceId === wanted) ? wanted : "";
+  }
+
+  // Os rótulos só aparecem depois que o usuário libera o microfone.
+  async function refreshDevices() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    let list = [];
+    try {
+      list = await navigator.mediaDevices.enumerateDevices();
+    } catch (_) { return; }
+    fillSelect(inDev, list.filter((d) => d.kind === "audioinput"), prefs.inId, "Microfone");
+    const outs = list.filter((d) => d.kind === "audiooutput");
+    if (sinkSupported() && outs.length) {
+      outDev.disabled = false;
+      fillSelect(outDev, outs, prefs.outId, "Saída");
+    }
+  }
+
+  function sinkSupported() {
+    return typeof AudioContext !== "undefined" &&
+           typeof AudioContext.prototype.setSinkId === "function";
+  }
+
+  async function applySink() {
+    if (!state.ctx || !sinkSupported()) return;
+    try {
+      await state.ctx.setSinkId(prefs.outId || "");
+    } catch (err) {
+      setStatus("Não deu para usar essa saída: " + (err && err.message ? err.message : err), "warn");
+    }
+  }
+
+  /**
+   * Mostra o que o navegador realmente entregou. Importa porque um fone
+   * Bluetooth, ao abrir o microfone, cai no perfil de mãos-livres (HFP) e o
+   * áudio inteiro vira banda estreita — justo onde estão os agudos da fala.
+   */
+  function describeInput(track) {
+    const st = track.getSettings ? track.getSettings() : {};
+    const parts = [];
+    parts.push(track.label || "microfone sem nome");
+    if (st.sampleRate) parts.push((st.sampleRate / 1000).toFixed(st.sampleRate % 1000 ? 1 : 0) + " kHz");
+    if (state.ctx) parts.push("saída " + (state.ctx.sampleRate / 1000).toFixed(0) + " kHz");
+    if (!sinkSupported()) parts.push("saída segue o padrão do sistema");
+    devInfo.textContent = parts.join(" · ");
+
+    const sr = st.sampleRate || 0;
+    if (sr && sr < 32000) {
+      setStatus(
+        "Microfone em banda estreita (" + Math.round(sr / 1000) + " kHz): nada acima de " +
+        Math.round(sr / 2000) + " kHz chega aqui, e é aí que moram os agudos. " +
+        "Típico de fone Bluetooth — prefira fone com fio.", "warn");
+      return true;
+    }
+    return false;
+  }
+
   async function start() {
     try {
       setStatus("Pedindo acesso ao microfone…");
@@ -427,7 +543,8 @@
           echoCancellation: $("aec").checked,
           noiseSuppression: $("ns").checked,
           autoGainControl: $("agc").checked,
-          channelCount: 1
+          channelCount: 1,
+          ...(prefs.inId ? { deviceId: { exact: prefs.inId } } : {})
         },
         video: false
       });
@@ -452,13 +569,26 @@
       powerBtn.textContent = "Desligar";
       powerBtn.dataset.on = "true";
       muteBtn.hidden = false;
-      setStatus("Ligado. Ajuste o volume aos poucos.", "ok");
+
+      await applySink();
+      await refreshDevices();
+      const narrow = describeInput(stream.getAudioTracks()[0]);
+      if (!narrow) setStatus("Ligado. Ajuste o volume aos poucos.", "ok");
       loop();
     } catch (err) {
       const name = err && err.name;
       if (name === "NotAllowedError") {
         setStatus("Permissão do microfone negada. Libere nas configurações do site.", "err");
-      } else if (name === "NotFoundError") {
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        if (prefs.inId) {
+          // O microfone escolhido antes não existe mais: volta ao padrão.
+          prefs.inId = "";
+          savePrefs();
+          inDev.value = "";
+          setStatus("O microfone escolhido sumiu. Tentando o padrão do sistema…", "warn");
+          stop(true);
+          return start();
+        }
         setStatus("Nenhum microfone encontrado.", "err");
       } else {
         setStatus("Não deu para iniciar: " + (err && err.message ? err.message : err), "err");
@@ -512,16 +642,33 @@
     });
   }
 
-  for (const id of ["ns", "agc", "aec"]) {
-    $(id).addEventListener("change", async () => {
-      if (!state.ctx) return;
-      const keep = { ...Object.fromEntries(Object.entries(sliders).map(([k, el]) => [k, el.value])) };
-      stop(true);
-      await start();
-      for (const [k, v] of Object.entries(keep)) sliders[k].value = v;
-      applySettings();
-    });
+  // Trocar microfone ou constraint exige abrir o stream de novo, mantendo os ajustes.
+  async function restart() {
+    if (!state.ctx) return;
+    const keep = Object.fromEntries(Object.entries(sliders).map(([k, el]) => [k, el.value]));
+    const wasMuted = state.muted;
+    stop(true);
+    await start();
+    if (!state.ctx) return;
+    for (const [k, v] of Object.entries(keep)) sliders[k].value = v;
+    if (wasMuted) toggleMute(); else applySettings();
   }
+
+  for (const id of ["ns", "agc", "aec"]) {
+    $(id).addEventListener("change", restart);
+  }
+
+  inDev.addEventListener("change", async () => {
+    prefs.inId = inDev.value;
+    savePrefs();
+    if (state.ctx) await restart();
+  });
+
+  outDev.addEventListener("change", async () => {
+    prefs.outId = outDev.value;
+    savePrefs();
+    await applySink();
+  });
 
   document.addEventListener("keydown", (e) => {
     if (e.code === "Space" && state.ctx && e.target.tagName !== "INPUT") {
@@ -537,12 +684,15 @@
         toggleMute();
         setStatus("Os dispositivos de áudio mudaram. Silenciei por segurança — confira o fone.", "warn");
       }
+      refreshDevices();
     });
   }
 
   window.addEventListener("pagehide", () => stop(true));
 
   renderLabels();
+  loadPrefs();
+  refreshDevices();
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     powerBtn.disabled = true;
     setStatus("Este navegador não dá acesso ao microfone. Abra a página por https:// ou localhost.", "err");

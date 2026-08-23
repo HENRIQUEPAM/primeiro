@@ -49,6 +49,43 @@ Os pontos que importam:
 - **Filtros Linkwitz-Riley** de 4ª ordem (dois biquads em cascata) nos cortes entre faixas,
   para as bandas somarem sem buraco na região de cruzamento.
 
+## Usar o microfone do próprio fone
+
+Dá, e o app deixa escolher: no cartão **Dispositivos** você seleciona a entrada e a saída.
+A troca de entrada reabre o microfone na hora, e a escolha fica salva para a próxima vez.
+
+O detalhe que decide a qualidade é **como o fone está conectado**:
+
+**Com fio (plugue TRRS de 4 polos, padrão CTIA).** É o melhor caso. O celular passa a usar
+o microfone do próprio fone assim que você pluga, o áudio continua em banda larga, e a
+latência é a menor possível. O microfone fica no cabo, na altura do peito — pega bem quem
+conversa de frente com você e pega mal o que vem de trás, o que aqui até ajuda. Atrito do
+cabo na roupa vira ruído, então prenda o fio.
+
+**Bluetooth: aqui mora o problema.** No momento em que o navegador abre o microfone do
+fone, o Bluetooth troca do perfil de música (A2DP) para o perfil de mãos-livres (HFP) — o
+mesmo de uma ligação. Isso derruba o áudio **nos dois sentidos** para mono em banda
+estreita: 8 kHz com CVSD, 16 kHz com mSBC. Ou seja, o canal corta tudo acima de 4 kHz (ou
+8 kHz), que é exatamente a faixa que você quer realçar. Você acaba amplificando agudos que
+já foram jogados fora antes de chegar aqui. O LE Audio com codec LC3 resolve isso de
+verdade, mas exige fone, celular e sistema compatíveis.
+
+Por isso o app mede e avisa: ele mostra a taxa de amostragem real que o navegador entregou,
+e se vier abaixo de 32 kHz aparece um alerta dizendo qual foi a frequência máxima que
+sobrou. Se você ver "16 kHz" ali, o Bluetooth cobrou o pedágio.
+
+**Microfonia fica mais fácil**, porque microfone e alto-falante passam a estar no mesmo
+corpo, a centímetros um do outro. Duas medidas ajudam: ponteira que vede bem o canal (o
+isolamento é o que impede o som de voltar) e o cancelamento de eco ligado. Aparelho auditivo
+de verdade convive com essa mesma geometria — microfone e receptor no mesmo aparelhinho —
+usando supressão adaptativa de realimentação, que estima o caminho de retorno e o cancela.
+É o item 3 da lista de melhorias mais abaixo.
+
+**Escolher a saída** depende do navegador: o Chrome no desktop permite direcionar o áudio
+para um dispositivo específico (`AudioContext.setSinkId`). No celular esse seletor fica
+desativado e o som segue o roteamento do sistema — que já manda para o fone conectado,
+então na prática não faz falta.
+
 ## Perfis
 
 | Perfil   | Para que serve                                      |
@@ -73,11 +110,11 @@ tem duas proteções — se o limitador ficar grudado no teto por mais de 1,5 s,
 volume sozinho; e se você desconectar o fone no meio do uso, ele silencia na hora (som indo
 para o alto-falante = microfonia garantida).
 
-**Microfone errado.** O microfone do celular fica no seu bolso ou na sua mão, não na sua
-orelha. Você perde toda a noção de direção do som, e o que ele capta melhor é o que está
-perto dele — não necessariamente quem está falando com você. Aparelho auditivo tem
-microfone em cada orelha, muitas vezes direcional, e é isso que faz diferença em mesa de
-restaurante.
+**Microfone no lugar errado.** Usando o microfone do celular, ele fica no bolso ou na mão,
+não na sua orelha: você perde a noção de direção e ele capta melhor o que está perto dele,
+não quem fala com você. O microfone do próprio fone melhora isso (veja a seção acima), mas
+ainda é um microfone só, omnidirecional. Aparelho auditivo tem microfone em cada orelha,
+muitas vezes direcional — é isso que faz diferença em mesa de restaurante.
 
 **Sem prescrição.** Aparelho auditivo é ajustado a partir de uma audiometria: ganho medido
 por frequência, para cada ouvido. Aqui você ajusta no ouvido, no chute. Serve para
