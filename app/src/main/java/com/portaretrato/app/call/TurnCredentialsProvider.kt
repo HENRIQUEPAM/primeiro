@@ -31,11 +31,14 @@ class TurnCredentialsProvider(
      * dispara o fallback para WhatsApp quando nao conectar.
      */
     suspend fun fetch(): CallConfig = try {
+        // getData() e nao `.data`: em HttpsCallableResult o campo e privado e
+        // so o acessor Java e publico, entao o Kotlin nao sintetiza a
+        // propriedade.
         @Suppress("UNCHECKED_CAST")
         val data = functions.getHttpsCallable(FUNCTION_NAME)
             .call()
             .await()
-            .data as? Map<String, Any?>
+            .getData() as? Map<String, Any?>
 
         val servers = (data?.get("iceServers") as? List<Map<String, Any?>>)
             ?.mapNotNull(::parseServer)
