@@ -7,7 +7,10 @@ import com.portaretrato.app.security.CameraDenialReason
 import com.portaretrato.app.security.CameraPurpose
 import com.portaretrato.app.security.PermissionFlow
 import com.portaretrato.app.security.PermissionStep
+import com.portaretrato.app.security.FieldCrypto
 import com.portaretrato.app.security.SensitivePermission
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
 
 var failures = 0
 
@@ -296,8 +299,58 @@ fun testPermissionFlow() {
     )
 }
 
+// ---------------------------------------------------------------------------
+// 9. Cifragem de campos sensiveis (AES-256-GCM)
+// ---------------------------------------------------------------------------
+fun aesKey(): SecretKey = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+
+fun testFieldCrypto() {
+    println("[9] Cifragem de campos sensiveis")
+
+    val key = aesKey()
+    val other = aesKey()
+
+    // Embedding facial: dado biometrico.
+    val embedding = ByteArray(768) { (it % 251).toByte() }
+    val sealed = FieldCrypto.encrypt(embedding, key)
+
+    check("round-trip preserva o embedding", FieldCrypto.decrypt(sealed, key)!!.contentEquals(embedding))
+    check("texto cifrado difere do claro", !sealed.contentEquals(embedding))
+    check("cresce so o cabecalho + tag (1+12+16)", sealed.size == embedding.size + 29, "=${sealed.size}")
+
+    // A garantia que importa se o banco vazar.
+    check("chave errada NAO decifra", FieldCrypto.decrypt(sealed, other) == null)
+
+    // GCM autentica: um bit trocado invalida tudo.
+    val tampered = sealed.copyOf().also { it[it.size - 1] = (it[it.size - 1] + 1).toByte() }
+    check("adulteracao do texto cifrado e DETECTADA", FieldCrypto.decrypt(tampered, key) == null)
+    val tamperedIv = sealed.copyOf().also { it[5] = (it[5] + 1).toByte() }
+    check("adulteracao do IV e DETECTADA", FieldCrypto.decrypt(tamperedIv, key) == null)
+
+    // IV reutilizado em GCM e falha catastrofica: tem de ser sempre novo.
+    val ivs = (1..200).map { FieldCrypto.ivOf(FieldCrypto.encrypt(embedding, key))!!.toList() }
+    check("IV nunca se repete em 200 operacoes", ivs.toSet().size == 200, "=${ivs.toSet().size}")
+    check(
+        "cifrar duas vezes o mesmo dado da saidas diferentes",
+        !FieldCrypto.encrypt(embedding, key).contentEquals(FieldCrypto.encrypt(embedding, key)),
+    )
+
+    // Telefone.
+    val phone = "+55 11 99999-9999"
+    check("round-trip de texto", FieldCrypto.decryptString(FieldCrypto.encryptString(phone, key), key) == phone)
+
+    // Robustez: registro corrompido nao pode derrubar a leitura do banco.
+    check("entrada vazia devolve null", FieldCrypto.decrypt(ByteArray(0), key) == null)
+    check("entrada truncada devolve null", FieldCrypto.decrypt(ByteArray(10), key) == null)
+    check(
+        "versao desconhecida devolve null",
+        FieldCrypto.decrypt(sealed.copyOf().also { it[0] = 99 }, key) == null,
+    )
+    check("dado nao cifrado devolve null", FieldCrypto.decrypt(embedding, key) == null)
+}
+
 fun main() {
-    println("=== Verificacao da seguranca de camera ===\n")
+    println("=== Verificacao da seguranca ===\n")
     testPermissionIsMandatory(); println()
     testNeverSilent(); println()
     testNeverInvisible(); println()
@@ -306,6 +359,7 @@ fun main() {
     testFailsClosed(); println()
     testAuditLog(); println()
     testPermissionFlow(); println()
+    testFieldCrypto(); println()
     if (failures == 0) println("TODOS OS TESTES PASSARAM")
     else { println("$failures TESTE(S) FALHARAM"); kotlin.system.exitProcess(1) }
 }
