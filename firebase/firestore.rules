@@ -1,42 +1,127 @@
 rules_version = '2';
 
+// Regras alinhadas a Secao 9 da Documentacao Tecnica Consolidada v3.1.
+// O schema canonico e /devices, /pairingRequests, /pairings e
+// /pairings/{id}/callSessions.
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Tokens do FCM: cada usuario so mexe nos seus.
-    match /users/{uid}/fcmTokens/{token} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    // ---------------------------------------------------------------- devices
+    match /devices/{deviceId} {
+      allow read: if request.auth != null;
+
+      // integrityVerified nasce obrigatoriamente false: so a Cloud Function
+      // verifyDeviceIntegrity, via Admin SDK, promove para true. Cliente nunca
+      // escreve esse campo.
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.integrityVerified == false
+        && request.resource.data.publicKeyP256 is string;
+
+      // Identidade e imutavel pos-criacao: trocar a chave publica depois do
+      // pareamento anularia o pin do outro lado.
+      allow update: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.publicKeyP256 == resource.data.publicKeyP256
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.integrityVerified == resource.data.integrityVerified;
+
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+
+      // fcmToken fora do documento principal, sem leitura para nenhum cliente.
+      match /private/{docId} {
+        allow read: if false;
+        allow write: if request.auth != null
+          && get(/databases/$(database)/documents/devices/$(deviceId)).data.ownerUid == request.auth.uid;
+      }
     }
 
-    match /calls/{callId} {
-      // Somente os dois participantes.
-      allow read: if request.auth != null
-        && (resource.data.fromUid == request.auth.uid
-            || resource.data.toUid == request.auth.uid);
+    // -------------------------------------------------------- pairingRequests
+    match /pairingRequests/{code} {
+      // get() por ID exato apenas. list/query proibido elimina descoberta de
+      // codigos por varredura.
+      allow get: if request.auth != null;
+      allow list: if false;
 
-      // Quem cria a chamada tem de ser quem diz ser.
       allow create: if request.auth != null
-        && request.resource.data.fromUid == request.auth.uid
-        && request.resource.data.toUid is string
-        && request.resource.data.sdp is string;
+        && request.resource.data.requesterDeviceId is string
+        && request.resource.data.attemptCount == 0
+        && request.resource.data.locked == false;
 
-      // Quem recebe so escreve answer e encerramento. Sem esta restricao ele
-      // poderia sobrescrever fromUid e sequestrar a identidade da chamada.
+      // O consumo do codigo e a criacao do pairing acontecem numa transacao da
+      // Cloud Function grantPairingClaims, com rate limiting por UID.
+      allow update, delete: if false;
+    }
+
+    // --------------------------------------------------------------- pairings
+    match /pairings/{pairingId} {
+      allow read: if request.auth != null
+        && (resource.data.deviceAOwnerUid == request.auth.uid
+            || resource.data.deviceBOwnerUid == request.auth.uid);
+
+      // Criacao direta pelo cliente e proibida: so via transacao que consome
+      // um pairingRequest valido e nao travado.
+      allow create: if false;
+
+      // Cada lado so confirma o PROPRIO fingerprint. A transicao para ACTIVE
+      // exige os dois booleanos true — gate bloqueante da Secao 9.
       allow update: if request.auth != null
-        && (resource.data.fromUid == request.auth.uid
-            || resource.data.toUid == request.auth.uid)
-        && request.resource.data.fromUid == resource.data.fromUid
-        && request.resource.data.toUid == resource.data.toUid
-        && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['answerSdp', 'answeredAt', 'ended', 'reason', 'endedAt']);
+        && (resource.data.deviceAOwnerUid == request.auth.uid
+            || resource.data.deviceBOwnerUid == request.auth.uid)
+        && request.resource.data.deviceA == resource.data.deviceA
+        && request.resource.data.deviceB == resource.data.deviceB
+        && (
+          (resource.data.deviceAOwnerUid == request.auth.uid
+            && request.resource.data.deviceBFingerprintConfirmed == resource.data.deviceBFingerprintConfirmed)
+          ||
+          (resource.data.deviceBOwnerUid == request.auth.uid
+            && request.resource.data.deviceAFingerprintConfirmed == resource.data.deviceAFingerprintConfirmed)
+        )
+        && (
+          request.resource.data.status == resource.data.status
+          || (request.resource.data.status == 'ACTIVE'
+              && request.resource.data.deviceAFingerprintConfirmed == true
+              && request.resource.data.deviceBFingerprintConfirmed == true)
+        );
 
       allow delete: if request.auth != null
-        && resource.data.fromUid == request.auth.uid;
+        && (resource.data.deviceAOwnerUid == request.auth.uid
+            || resource.data.deviceBOwnerUid == request.auth.uid);
 
-      match /candidates/{candidateId} {
-        // Candidatos ICE sao efemeros e inuteis fora da chamada; exigir
-        // autenticacao basta.
-        allow read, create, delete: if request.auth != null;
+      // ---------------------------------------------------- callSessions
+      // ownerUid denormalizado permite decidir em O(1), sem get()
+      // cross-documento no caminho quente da sinalizacao.
+      match /callSessions/{sessionId} {
+        allow read: if request.auth != null;
+
+        allow create: if request.auth != null
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.offerSdp is string
+          && request.resource.data.offerSignature is string
+          && request.resource.data.state == 'RINGING'
+          // serverTimestamp obrigatorio: a validacao de frescor do callee nao
+          // pode depender do relogio de quem liga.
+          && request.resource.data.createdAt == request.time;
+
+        // Quem atende nunca reescreve a offer nem a identidade da sessao.
+        allow update: if request.auth != null
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.offerSdp == resource.data.offerSdp
+          && request.resource.data.offerSignature == resource.data.offerSignature
+          && request.resource.data.callerDeviceId == resource.data.callerDeviceId
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['answerSdp', 'answerSignature', 'state', 'endReason',
+                         'answeredAt', 'endedAt']);
+
+        // Limpeza de sessoes obsoletas e da Cloud Function
+        // sweepStaleCallSessions, nao do cliente.
+        allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+
+        match /candidates/{candidateId} {
+          allow read, create: if request.auth != null;
+          allow delete: if request.auth != null;
+        }
       }
     }
   }

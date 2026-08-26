@@ -13,6 +13,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
+    <!-- Permissao de assinatura: so apps assinados com a mesma chave leem. -->
+    <permission
+        android:name="com.portaretrato.permission.READ_CALL_STATE"
+        android:protectionLevel="signature" />
+
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
@@ -61,6 +66,17 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!--
+            Publica call_in_progress para o watchdog/MCU (Secoes 6 e 7.5).
+            exported=true por necessidade: o consumidor e outro processo.
+            Somente leitura, e o provider recusa insert/update/delete.
+        -->
+        <provider
+            android:name="com.portaretrato.app.call.CallStateProvider"
+            android:authorities="com.portaretrato.callstate"
+            android:exported="true"
+            android:readPermission="com.portaretrato.permission.READ_CALL_STATE" />
 
     </application>
 </manifest>

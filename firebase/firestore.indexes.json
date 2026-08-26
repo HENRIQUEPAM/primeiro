@@ -1,10 +1,11 @@
 {
   "indexes": [
     {
-      "collectionGroup": "calls",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "callSessions",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "toUid", "order": "ASCENDING" },
+        { "fieldPath": "calleeDeviceId", "order": "ASCENDING" },
+        { "fieldPath": "state", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
