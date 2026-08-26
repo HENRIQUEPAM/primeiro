@@ -23,6 +23,7 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
+        android:name="com.portaretrato.app.PortaRetratoApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -53,6 +54,11 @@
             android:turnScreenOn="true"
             android:excludeFromRecents="true"
             android:screenOrientation="portrait" />
+
+        <activity
+            android:name="com.portaretrato.app.ui.PrivacyActivity"
+            android:exported="false"
+            android:label="@string/privacy_title" />
 
         <service
             android:name="com.portaretrato.app.call.CallService"

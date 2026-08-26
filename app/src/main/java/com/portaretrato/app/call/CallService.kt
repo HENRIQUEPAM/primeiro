@@ -9,6 +9,7 @@ import android.os.IBinder
 import com.portaretrato.app.call.ui.CallActivity
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.portaretrato.app.PortaRetratoApp
 import java.util.Calendar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -138,6 +139,9 @@ class CallService : Service() {
             // TODO: buscar credenciais efêmeras de TURN. Ver docs/CHAMADAS.md.
             // Só com STUN, chamadas em NAT simétrico (rede móvel) não conectam.
             config = CallConfig.stunOnly(),
+            // O guarda vem da Application: unico no processo, senao a garantia
+            // de camera exclusiva cai por terra.
+            cameraGuard = PortaRetratoApp.from(applicationContext).cameraGuard,
         )
         controller = created
 
@@ -150,6 +154,9 @@ class CallService : Service() {
     }
 
     private fun promoteToForeground(notification: android.app.Notification) {
+        // A partir daqui existe notificacao visivel: a politica de camera passa
+        // a considerar o app "visivel ao usuario" mesmo sem Activity na tela.
+        PortaRetratoApp.from(applicationContext).mediaForegroundServiceRunning = true
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 CallNotifications.NOTIFICATION_ID,
@@ -163,6 +170,7 @@ class CallService : Service() {
     }
 
     private fun stopIfIdle() {
+        PortaRetratoApp.from(applicationContext).mediaForegroundServiceRunning = false
         controller?.release()
         controller = null
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -170,6 +178,7 @@ class CallService : Service() {
     }
 
     override fun onDestroy() {
+        PortaRetratoApp.from(applicationContext).mediaForegroundServiceRunning = false
         controller?.release()
         controller = null
         instance = null

@@ -52,4 +52,18 @@
     <string name="ended_no_answer">Ninguém atendeu</string>
     <string name="ended_busy">Ocupado</string>
     <string name="ended_connection_failed">Não foi possível conectar</string>
+
+    <!-- Aviso de camera ativa -->
+    <string name="camera_notice_title">Câmera ligada</string>
+    <string name="camera_notice_detail">A câmera está ligada agora: %1$s. Toque para ver o histórico de uso da câmera.</string>
+    <string name="camera_notice_channel">Câmera em uso</string>
+    <string name="camera_notice_channel_description">Aviso permanente enquanto a câmera estiver ligada. Não desative.</string>
+
+    <!-- Tela de privacidade -->
+    <string name="privacy_title">Privacidade da câmera</string>
+    <string name="privacy_camera_off">A câmera está desligada agora.</string>
+    <string name="privacy_camera_on">A câmera está ligada: %1$s</string>
+    <string name="privacy_history">Histórico de uso</string>
+    <string name="privacy_no_history">A câmera ainda não foi usada.</string>
+    <string name="privacy_explanation">A câmera só liga durante uma videochamada, e sempre com aviso na tela. O reconhecimento de rostos usa as fotos já salvas e não liga a câmera.</string>
 </resources>

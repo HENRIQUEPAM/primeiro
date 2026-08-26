@@ -3,6 +3,9 @@ package com.portaretrato.app.call
 import android.content.Context
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.portaretrato.app.security.CameraGuard
+import com.portaretrato.app.security.CameraLease
+import com.portaretrato.app.security.CameraPurpose
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +51,11 @@ class CallController(
     private val localUid: String,
     private val localName: String,
     private val config: CallConfig,
+    /**
+     * Guarda da câmera. Obrigatório: o controlador não tem como abrir vídeo
+     * sem obter uma concessão aqui.
+     */
+    private val cameraGuard: CameraGuard,
     firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
 ) {
 
@@ -62,6 +70,7 @@ class CallController(
     private var reconnectTimeoutJob: Job? = null
     private var autoAnswerJob: Job? = null
     private var isCaller = false
+    private var cameraLease: CameraLease? = null
 
     private val _uiState = MutableStateFlow(CallUiState())
     val uiState: StateFlow<CallUiState> = _uiState.asStateFlow()
@@ -194,10 +203,36 @@ class CallController(
 
     // -------------------------------------------------------------- internos
 
+    /**
+     * Sobe o motor de mídia.
+     *
+     * A concessão de câmera é pedida aqui, e a chamada **continua sem vídeo**
+     * se for negada, em vez de falhar. Para o usuário, ouvir a filha é melhor
+     * que uma tela de erro; e o motivo da negação vai para a UI explicar.
+     *
+     * `preemptFor` em vez de `acquire`: se a varredura de rostos estiver com a
+     * câmera, ela cede — chamada tem prioridade, e o aparelho tem uma câmera só.
+     */
     private fun startEngine(video: Boolean) {
+        val lease = if (video) {
+            cameraGuard.preemptFor(CameraPurpose.VIDEO_CALL).also { granted ->
+                if (granted == null) {
+                    val reason = cameraGuard.lastDenial
+                    Log.w(TAG, "Câmera negada ($reason); chamada seguirá só em áudio.")
+                    _uiState.value = _uiState.value.copy(
+                        cameraEnabled = false,
+                        errorMessage = reason?.let(com.portaretrato.app.security.CameraAccessPolicy::explain),
+                    )
+                }
+            }
+        } else {
+            null
+        }
+        cameraLease = lease
+
         val created = WebRtcEngine(context, config, EngineListener())
         engine = created
-        created.start(video)
+        created.start(video && lease != null, lease)
     }
 
     private fun observeSignaling(id: String) {
@@ -261,6 +296,10 @@ class CallController(
         signaling.stop()
         engine?.release()
         engine = null
+        // A concessão cai junto com a chamada: o aviso de câmera some no mesmo
+        // instante em que a captura para.
+        cameraLease?.close()
+        cameraLease = null
         _remoteVideoTrack.value = null
 
         // Só quem ligou limpa, para os dois lados não apagarem ao mesmo tempo.

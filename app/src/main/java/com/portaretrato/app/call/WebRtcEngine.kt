@@ -2,6 +2,7 @@ package com.portaretrato.app.call
 
 import android.content.Context
 import android.util.Log
+import com.portaretrato.app.security.CameraLease
 import org.webrtc.AudioSource
 import org.webrtc.AudioTrack
 import org.webrtc.Camera2Enumerator
@@ -76,9 +77,17 @@ class WebRtcEngine(
 
     /**
      * Inicializa fábrica, mídia local e `PeerConnection`.
-     * Chame depois de já ter as permissões de câmera e microfone.
+     *
+     * @param cameraLease concessão obtida no `CameraGuard`. **Sem ela não há
+     *   vídeo**, e não por convenção: o parâmetro é obrigatório e o capturador
+     *   só é construído se a concessão estiver ativa. Não existe caminho neste
+     *   arquivo que chegue à câmera sem uma concessão válida — é o que
+     *   transforma "não acessamos a câmera sem permissão" numa propriedade do
+     *   código em vez de uma promessa no README.
+     *
+     *   Passe `null` para chamada só de áudio.
      */
-    fun start(withVideo: Boolean) {
+    fun start(withVideo: Boolean, cameraLease: CameraLease?) {
         PeerConnectionFactory.initialize(
             PeerConnectionFactory.InitializationOptions.builder(context)
                 .createInitializationOptions(),
@@ -108,10 +117,14 @@ class WebRtcEngine(
                 return
             }
 
-        createLocalTracks(peerFactory, withVideo)
+        createLocalTracks(peerFactory, withVideo, cameraLease)
     }
 
-    private fun createLocalTracks(peerFactory: PeerConnectionFactory, withVideo: Boolean) {
+    private fun createLocalTracks(
+        peerFactory: PeerConnectionFactory,
+        withVideo: Boolean,
+        cameraLease: CameraLease?,
+    ) {
         val connection = peerConnection ?: return
 
         audioSource = peerFactory.createAudioSource(MediaConstraints())
@@ -119,6 +132,14 @@ class WebRtcEngine(
             .also { connection.addTrack(it, listOf(STREAM_ID)) }
 
         if (!withVideo) return
+
+        // Porta de entrada única da câmera. Uma concessão ausente ou já
+        // encerrada derruba o vídeo e mantém a chamada em áudio — nunca abre a
+        // câmera "só desta vez".
+        if (cameraLease == null || !cameraLease.isActive) {
+            Log.w(TAG, "Sem concessão de câmera ativa: seguindo apenas com áudio.")
+            return
+        }
 
         val capturer = createCameraCapturer()
         if (capturer == null) {
