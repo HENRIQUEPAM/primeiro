@@ -63,7 +63,8 @@ def check_xml_wellformed():
 def declared_resources():
     """Mapeia tipo -> conjunto de nomes definidos."""
     declared = {"string": set(), "color": set(), "style": set(),
-                "drawable": set(), "layout": set(), "mipmap": set()}
+                "drawable": set(), "layout": set(), "mipmap": set(),
+                "plurals": set()}
 
     for path in walk(os.path.join(RES, "values")):
         root = ET.parse(path).getroot()
@@ -111,7 +112,9 @@ def check_resource_refs(declared):
 
 # ---------------------------------------- recursos usados no Kotlin via R.*
 # O lookbehind exclui `android.R.*`, que e o R do framework e nao do app.
-R_RE = re.compile(r"(?<!android\.)\bR\.(string|color|drawable|layout|style|mipmap)\.([A-Za-z0-9_]+)")
+R_RE = re.compile(
+    r"(?<!android\.)\bR\.(string|color|drawable|layout|style|mipmap|plurals)\.([A-Za-z0-9_]+)"
+)
 
 
 def check_kotlin_resource_refs(declared):

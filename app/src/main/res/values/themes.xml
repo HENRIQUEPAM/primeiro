@@ -41,4 +41,12 @@
         <item name="android:paddingTop">8dp</item>
         <item name="android:paddingBottom">8dp</item>
     </style>
+
+    <!-- Botao dos controles do slideshow: alto e largo, sobre fundo escuro. -->
+    <style name="SlideshowActionButton" parent="Widget.Material3.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">64dp</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:textSize">18sp</item>
+    </style>
 </resources>

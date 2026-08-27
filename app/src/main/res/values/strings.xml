@@ -76,4 +76,26 @@
     <string name="app_call_not_configured">A chamada pelo aparelho ainda não está configurada.</string>
     <string name="contacts_title">Quem você quer chamar?</string>
     <string name="edit_contact">Editar contato</string>
+
+    <!-- Porta-retrato -->
+    <string name="photo_description">Foto da família</string>
+    <string name="no_photos_title">Nenhuma foto ainda</string>
+    <string name="no_photos_hint">Adicione fotos da família para elas aparecerem aqui, uma depois da outra.</string>
+    <string name="add_photos">Adicionar fotos</string>
+    <string name="call_someone">Chamar alguém</string>
+    <string name="slideshow_interval">Tempo de cada foto</string>
+    <string name="order_shuffle">Ordem aleatória</string>
+    <string name="order_sequential">Ordem de sempre</string>
+    <string name="seconds_format">%1$d segundos</string>
+    <string name="photos_already_added">Estas fotos já estavam no aparelho.</string>
+
+    <plurals name="photos_added">
+        <item quantity="one">%1$d foto adicionada</item>
+        <item quantity="other">%1$d fotos adicionadas</item>
+    </plurals>
+
+    <plurals name="photo_count">
+        <item quantity="one">%1$d foto no aparelho</item>
+        <item quantity="other">%1$d fotos no aparelho</item>
+    </plurals>
 </resources>

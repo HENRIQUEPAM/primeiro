@@ -30,15 +30,25 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PortaRetratoChamadas">
 
+        <!--
+            O porta-retrato e a tela inicial. Contatos, privacidade e ajustes
+            ficam a um toque dela.
+        -->
         <activity
-            android:name="com.portaretrato.app.call.ui.HomeActivity"
+            android:name="com.portaretrato.app.ui.SlideshowActivity"
             android:exported="true"
-            android:label="@string/app_name">
+            android:label="@string/app_name"
+            android:screenOrientation="fullSensor">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name="com.portaretrato.app.call.ui.HomeActivity"
+            android:exported="false"
+            android:label="@string/contacts_title" />
 
         <!--
             singleTask + excludeFromRecents: a tela de chamada nunca deve
