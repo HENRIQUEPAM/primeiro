@@ -9,10 +9,10 @@
     <string name="peer_code_hint">Código de quem você quer chamar</string>
     <string name="start_call">Ligar</string>
     <string name="trusted_contacts">Contatos de confiança</string>
-    <string name="no_contacts">Nenhum contato ainda. Toque em Adicionar.</string>
+    <string name="no_contacts">Nenhum contato ainda.\n\nToque em "Adicionar contato" e cadastre o nome e o telefone de quem você quer chamar.</string>
     <string name="add_contact">Adicionar contato</string>
     <string name="contact_name_hint">Nome</string>
-    <string name="contact_code_hint">Código do contato</string>
+    <string name="contact_code_hint">Código do aparelho (opcional)</string>
     <string name="auto_answer_checkbox">Atender automaticamente</string>
     <string name="auto_answer_warning">Com isto ligado, a chamada desta pessoa é atendida sozinha após 3 segundos, abrindo câmera e microfone. Ative apenas para quem você confia totalmente.</string>
     <string name="auto_answer_on"> — atende sozinho</string>
@@ -66,4 +66,14 @@
     <string name="privacy_history">Histórico de uso</string>
     <string name="privacy_no_history">A câmera ainda não foi usada.</string>
     <string name="privacy_explanation">A câmera só liga durante uma videochamada, e sempre com aviso na tela. O reconhecimento de rostos usa as fotos já salvas e não liga a câmera.</string>
+
+    <!-- Cartao de contato -->
+    <string name="tap_to_call">Toque para: %1$s</string>
+    <string name="no_way_to_call">Cadastre um telefone para poder chamar</string>
+    <string name="contact_phone_hint">Telefone com DDD</string>
+    <string name="whatsapp_missing">WhatsApp não está instalado neste aparelho.</string>
+    <string name="dialer_missing">Não foi possível abrir o discador.</string>
+    <string name="app_call_not_configured">A chamada pelo aparelho ainda não está configurada.</string>
+    <string name="contacts_title">Quem você quer chamar?</string>
+    <string name="edit_contact">Editar contato</string>
 </resources>

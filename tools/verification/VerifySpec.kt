@@ -1,6 +1,9 @@
 import com.portaretrato.app.call.CallEndReason
 import com.portaretrato.app.call.PairingProtocol
+import com.portaretrato.app.call.CallMethod
+import com.portaretrato.app.call.CallOptions
 import com.portaretrato.app.call.SdpSigner
+import com.portaretrato.app.call.UnavailableReason
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.spec.ECGenParameterSpec
@@ -179,6 +182,93 @@ fun testPhoneNormalization() {
 
 fun norm(p: String): String? = com.portaretrato.app.call.PhoneNumbers.normalize(p)
 
+// ---------------------------------------------------------------------------
+// 6. Opcoes de chamada por contato
+// ---------------------------------------------------------------------------
+fun options(
+    phone: String? = "11999999999",
+    configured: Boolean = true,
+    paired: String? = "dev-b",
+    online: Boolean = true,
+    inCall: Boolean = false,
+) = CallOptions.forContact(phone, configured, paired, online, inCall)
+
+fun opt(list: List<com.portaretrato.app.call.CallOption>, m: CallMethod) = list.first { it.method == m }
+
+fun testCallOptions() {
+    println("[6] Opcoes de chamada por contato")
+
+    // Situacao REAL de hoje: sem Firebase configurado.
+    val hoje = options(configured = false)
+    check(
+        "sem configuracao, chamada pelo app fica indisponivel",
+        !opt(hoje, CallMethod.APP_VIDEO).available,
+    )
+    check(
+        "e explica o motivo em portugues",
+        opt(hoje, CallMethod.APP_VIDEO).explanation == "Chamada pelo app ainda nao configurada".replace("nao", "não"),
+        "=${opt(hoje, CallMethod.APP_VIDEO).explanation}",
+    )
+    // O ponto central: mesmo assim o usuario CONSEGUE falar com a pessoa.
+    check("WhatsApp video continua disponivel", opt(hoje, CallMethod.WHATSAPP_VIDEO).available)
+    check("WhatsApp chat continua disponivel", opt(hoje, CallMethod.WHATSAPP_CHAT).available)
+    check("telefone continua disponivel", opt(hoje, CallMethod.PHONE_DIAL).available)
+    check("ha ao menos uma forma de falar", CallOptions.hasAnyOption(hoje))
+    check(
+        "o toque simples cai no WhatsApp video",
+        CallOptions.best(hoje)?.method == CallMethod.WHATSAPP_VIDEO,
+        "=${CallOptions.best(hoje)?.method}",
+    )
+
+    // Tudo configurado: o app assume a preferencia.
+    val completo = options()
+    check("com tudo pronto, chamada pelo app fica disponivel", opt(completo, CallMethod.APP_VIDEO).available)
+    check(
+        "o toque simples passa a usar o app",
+        CallOptions.best(completo)?.method == CallMethod.APP_VIDEO,
+    )
+    check(
+        "WhatsApp NAO desaparece quando o app funciona",
+        opt(completo, CallMethod.WHATSAPP_VIDEO).available,
+    )
+
+    // Contato sem telefone: so resta o app.
+    val semTelefone = options(phone = null)
+    check("sem telefone, WhatsApp fica indisponivel", !opt(semTelefone, CallMethod.WHATSAPP_VIDEO).available)
+    check(
+        "e explica que falta o telefone",
+        opt(semTelefone, CallMethod.WHATSAPP_VIDEO).unavailableReason == UnavailableReason.NO_PHONE_NUMBER,
+    )
+    check("telefone invalido conta como ausente", !opt(options(phone = "123"), CallMethod.PHONE_DIAL).available)
+
+    // Sem par, sem presenca, ja em chamada.
+    check(
+        "sem pareamento, app indisponivel",
+        opt(options(paired = null), CallMethod.APP_VIDEO).unavailableReason == UnavailableReason.NO_PAIRING,
+    )
+    check(
+        "par offline, app indisponivel",
+        opt(options(online = false), CallMethod.APP_VIDEO).unavailableReason == UnavailableReason.PEER_OFFLINE,
+    )
+    check(
+        "ja em chamada tem precedencia sobre os outros motivos",
+        opt(options(inCall = true, configured = false), CallMethod.APP_VIDEO).unavailableReason
+            == UnavailableReason.ALREADY_IN_CALL,
+    )
+
+    // Contato sem nada.
+    val nada = options(phone = null, configured = false)
+    check("contato sem telefone e sem app nao tem opcao", !CallOptions.hasAnyOption(nada))
+    check("e best() devolve null", CallOptions.best(nada) == null)
+
+    // Toda opcao indisponivel precisa dizer por que.
+    check(
+        "toda opcao indisponivel tem explicacao",
+        (hoje + semTelefone + nada).filter { !it.available }.all { !it.explanation.isNullOrBlank() },
+    )
+    check("todo botao tem rotulo", completo.all { it.label.isNotBlank() })
+}
+
 fun main() {
     println("=== Verificacao do alinhamento com a especificacao v3.1 ===\n")
     testSigning(); println()
@@ -186,6 +276,7 @@ fun main() {
     testFreshness(); println()
     testSchema(); println()
     testPhoneNormalization(); println()
+    testCallOptions(); println()
     if (failures == 0) println("TODOS OS TESTES PASSARAM")
     else { println("$failures TESTE(S) FALHARAM"); kotlin.system.exitProcess(1) }
 }

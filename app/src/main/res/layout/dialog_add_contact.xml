@@ -14,11 +14,21 @@
         android:autofillHints="name" />
 
     <EditText
+        android:id="@+id/contact_phone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:hint="@string/contact_phone_hint"
+        android:inputType="phone"
+        android:autofillHints="phone" />
+
+    <EditText
         android:id="@+id/contact_code"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:hint="@string/contact_code_hint"
+        android:importantForAutofill="no"
         android:inputType="text"
         android:autofillHints="username" />
 

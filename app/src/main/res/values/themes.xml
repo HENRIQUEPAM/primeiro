@@ -30,4 +30,15 @@
         <item name="backgroundTint">@color/secondary_button</item>
         <item name="cornerRadius">16dp</item>
     </style>
+
+    <!-- Botao de acao do cartao de contato: alto, largo e com rotulo em texto. -->
+    <style name="ContactActionButton" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
 </resources>

@@ -2,43 +2,54 @@ package com.portaretrato.app.call.ui
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.firebase.auth.FirebaseAuth
 import com.portaretrato.app.R
+import com.portaretrato.app.call.CallMethod
+import com.portaretrato.app.call.CallOptions
 import com.portaretrato.app.call.CallService
 import com.portaretrato.app.call.FcmTokenRegistrar
 import com.portaretrato.app.call.IncomingCallWatcher
 import com.portaretrato.app.call.TrustedContact
 import com.portaretrato.app.call.TrustedContactsStore
+import com.portaretrato.app.call.WhatsAppFallback
 import com.portaretrato.app.databinding.ActivityHomeBinding
 
 /**
- * Tela inicial do projeto de demonstração.
+ * Tela inicial: a lista de quem se pode chamar.
  *
- * O pareamento é proposital de baixa cerimônia: cada aparelho faz login
- * anônimo e mostra o próprio código; para ligar, digita-se o código do outro.
- * Isso permite testar com dois aparelhos sem montar cadastro, lista de amigos
- * nem convite — que não é o objetivo aqui.
+ * ## O caminho que funciona hoje
  *
- * Ao integrar no Porta Retrato, troque o código pelo `uid` que o app já tem do
- * login com Google, e a lista de contatos pela lista de `Person` existente.
+ * A chamada de vídeo dentro do app depende de Firebase configurado, pareamento
+ * e TURN — nada disso é código, é infraestrutura. Enquanto faltar, o botão
+ * aparece **desabilitado com o motivo escrito**, e o WhatsApp assume: ele
+ * funciona sem backend, sem custo e sem configuração, e a família já o tem.
+ *
+ * Isso não é um remendo. A Seção 7.4 da especificação determina que o WhatsApp
+ * seja preservado ao lado da chamada nativa, nunca substituído — aqui ele
+ * apenas assume a frente enquanto o resto não está de pé.
  */
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHomeBinding
     private lateinit var contacts: TrustedContactsStore
+    private lateinit var adapter: ContactAdapter
     private val watcher by lazy { IncomingCallWatcher(applicationContext) }
+
+    /** `true` quando o Firebase autenticou; gateia a opção de chamada no app. */
+    private var appCallConfigured = false
 
     private val requestPermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { /* o resultado é reavaliado na hora da chamada */ }
+    ) { /* reavaliado no momento da chamada, pelo CameraGuard */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,152 +57,192 @@ class HomeActivity : AppCompatActivity() {
         setContentView(binding.root)
         contacts = TrustedContactsStore(this)
 
+        adapter = ContactAdapter(onCall = ::startCall, onLongPress = ::showContactMenu)
+        binding.contactsList.layoutManager = LinearLayoutManager(this)
+        binding.contactsList.adapter = adapter
+
+        binding.addContactButton.setOnClickListener { showAddContactDialog() }
+        binding.privacyButton.setOnClickListener {
+            startActivity(Intent(this, PrivacyActivity::class.java))
+        }
+
         requestStartupPermissions()
         signIn()
+    }
 
-        binding.callButton.setOnClickListener { dial() }
-        binding.addContactButton.setOnClickListener { addContactDialog() }
-        binding.copyCodeButton.setOnClickListener { copyMyCode() }
+    override fun onResume() {
+        super.onResume()
+        refresh()
+    }
+
+    // -------------------------------------------------------------- chamadas
+
+    /**
+     * Executa a forma de chamada escolhida.
+     *
+     * Cada caminho falha de forma visível e explicada — nada de botão que não
+     * faz nada, que para o público-alvo equivale a aparelho quebrado.
+     */
+    private fun startCall(contact: TrustedContact, method: CallMethod) {
+        val phone = contact.phone.orEmpty()
+        when (method) {
+            CallMethod.WHATSAPP_VIDEO ->
+                if (!WhatsAppFallback.startVideoCall(this, phone)) {
+                    toast(R.string.whatsapp_missing)
+                }
+
+            CallMethod.WHATSAPP_CHAT ->
+                if (!WhatsAppFallback.openChat(this, phone)) {
+                    toast(R.string.whatsapp_missing)
+                }
+
+            CallMethod.PHONE_DIAL -> dial(phone)
+
+            CallMethod.APP_VIDEO -> {
+                if (!appCallConfigured) {
+                    toast(R.string.app_call_not_configured)
+                    return
+                }
+                CallService.dial(this, contact.uid, contact.name, video = true)
+                startActivity(Intent(this, CallActivity::class.java))
+            }
+        }
     }
 
     /**
-     * Login anônimo: cada instalação vira um `uid` estável, sem tela de
-     * cadastro. Ative "Anônimo" em Authentication > Sign-in method no console
-     * do Firebase.
+     * `ACTION_DIAL` e não `ACTION_CALL`: abre o discador com o número pronto,
+     * sem exigir a permissão `CALL_PHONE`. Uma permissão perigosa a menos, e o
+     * usuário ainda confirma a ligação — que é o comportamento certo quando um
+     * toque errado custa dinheiro.
      */
+    private fun dial(phone: String) {
+        val normalized = WhatsAppFallback.normalize(phone) ?: return
+        try {
+            startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:+$normalized")))
+        } catch (e: Exception) {
+            toast(R.string.dialer_missing)
+        }
+    }
+
+    // --------------------------------------------------------------- estado
+
     private fun signIn() {
         val auth = FirebaseAuth.getInstance()
-        val current = auth.currentUser
-        if (current != null) {
-            onSignedIn(current.uid)
-            return
-        }
+        auth.currentUser?.let { return onSignedIn(it.uid) }
+
         auth.signInAnonymously()
-            .addOnSuccessListener { result ->
-                result.user?.uid?.let(::onSignedIn)
-            }
+            .addOnSuccessListener { result -> result.user?.uid?.let(::onSignedIn) }
             .addOnFailureListener {
-                binding.myCode.text = getString(R.string.sign_in_failed)
-                Toast.makeText(this, R.string.sign_in_failed_hint, Toast.LENGTH_LONG).show()
+                // Caminho esperado com google-services.json de placeholder.
+                // O app continua útil: os botões de WhatsApp e telefone
+                // funcionam sem Firebase nenhum.
+                appCallConfigured = false
+                binding.statusBanner.visibility = View.VISIBLE
+                binding.statusBanner.setText(R.string.sign_in_failed_hint)
+                refresh()
             }
     }
 
     private fun onSignedIn(uid: String) {
+        appCallConfigured = true
+        binding.statusBanner.visibility = View.GONE
         binding.myCode.text = uid
-        // Caminho que funciona sem Cloud Function, com o app aberto.
         watcher.start(uid)
-        // Caminho para app morto. Sem a function implantada, isto é inócuo.
         FcmTokenRegistrar().registerCurrent(uid)
-        refreshContacts()
+        refresh()
     }
 
-    private fun requestStartupPermissions() {
-        val permissions = mutableListOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions += Manifest.permission.POST_NOTIFICATIONS
+    private fun refresh() {
+        val cards = contacts.all().map { contact ->
+            ContactCard(
+                contact = contact,
+                options = CallOptions.forContact(
+                    phone = contact.phone,
+                    appCallConfigured = appCallConfigured,
+                    // Pareamento e presença chegam quando o fluxo de pareamento
+                    // existir; até lá a opção do app fica corretamente indisponível.
+                    pairedDeviceId = null,
+                    peerOnline = false,
+                    alreadyInCall = CallService.activeController != null,
+                ),
+            )
         }
-        requestPermissions.launch(permissions.toTypedArray())
+        adapter.submitList(cards)
+        binding.emptyState.visibility = if (cards.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    private fun dial() {
-        val code = binding.peerCode.text.toString().trim()
-        if (code.isBlank()) {
-            Toast.makeText(this, R.string.enter_code, Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (code == FirebaseAuth.getInstance().currentUser?.uid) {
-            Toast.makeText(this, R.string.cannot_call_self, Toast.LENGTH_SHORT).show()
-            return
-        }
-        val name = contacts.all().firstOrNull { it.uid == code }?.name
-            ?: getString(R.string.unknown_caller)
+    // -------------------------------------------------------------- contatos
 
-        CallService.dial(this, code, name, video = true)
-        startActivity(Intent(this, CallActivity::class.java))
-    }
-
-    private fun addContactDialog() {
+    private fun showAddContactDialog(existing: TrustedContact? = null) {
         val view = layoutInflater.inflate(R.layout.dialog_add_contact, null)
         val nameField = view.findViewById<android.widget.EditText>(R.id.contact_name)
+        val phoneField = view.findViewById<android.widget.EditText>(R.id.contact_phone)
         val codeField = view.findViewById<android.widget.EditText>(R.id.contact_code)
-        val autoAnswer = view.findViewById<android.widget.CheckBox>(R.id.contact_auto_answer)
+
+        existing?.let {
+            nameField.setText(it.name)
+            phoneField.setText(it.phone.orEmpty())
+            codeField.setText(it.uid)
+        }
 
         AlertDialog.Builder(this)
             .setTitle(R.string.add_contact)
             .setView(view)
             .setPositiveButton(R.string.save) { _, _ ->
                 val name = nameField.text.toString().trim()
+                val phone = phoneField.text.toString().trim()
                 val code = codeField.text.toString().trim()
-                if (name.isBlank() || code.isBlank()) {
-                    Toast.makeText(this, R.string.fill_all_fields, Toast.LENGTH_SHORT).show()
+                if (name.isBlank()) {
+                    toast(R.string.fill_all_fields)
                     return@setPositiveButton
                 }
                 contacts.upsert(
                     TrustedContact(
-                        uid = code,
+                        // Sem código de pareamento, o telefone identifica o
+                        // contato: dá para cadastrar a família e ligar hoje,
+                        // sem depender de nada estar configurado.
+                        uid = code.ifBlank { existing?.uid ?: "tel:$phone" },
                         name = name,
-                        phone = null,
-                        autoAnswerEnabled = autoAnswer.isChecked,
+                        phone = phone.ifBlank { null },
+                        autoAnswerEnabled = existing?.autoAnswerEnabled ?: false,
                     ),
                 )
-                refreshContacts()
+                refresh()
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
-    private fun refreshContacts() {
-        val all = contacts.all()
-        binding.contactsEmpty.visibility = if (all.isEmpty()) View.VISIBLE else View.GONE
-        binding.contactsList.adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_list_item_1,
-            all.map { contact ->
-                val suffix = if (contact.autoAnswerEnabled) {
-                    getString(R.string.auto_answer_on)
-                } else {
-                    ""
-                }
-                "${contact.name}$suffix"
-            },
-        )
-        binding.contactsList.setOnItemClickListener { _, _, position, _ ->
-            val contact = all[position]
-            binding.peerCode.setText(contact.uid)
-        }
-        binding.contactsList.setOnItemLongClickListener { _, _, position, _ ->
-            val contact = all[position]
-            AlertDialog.Builder(this)
-                .setTitle(contact.name)
-                .setItems(
-                    arrayOf(
-                        getString(
-                            if (contact.autoAnswerEnabled) {
-                                R.string.disable_auto_answer
-                            } else {
-                                R.string.enable_auto_answer
-                            },
-                        ),
-                        getString(R.string.remove_contact),
-                    ),
-                ) { _, which ->
-                    when (which) {
-                        0 -> contacts.setAutoAnswer(contact.uid, !contact.autoAnswerEnabled)
-                        1 -> contacts.remove(contact.uid)
+    private fun showContactMenu(contact: TrustedContact) {
+        AlertDialog.Builder(this)
+            .setTitle(contact.name)
+            .setItems(
+                arrayOf(getString(R.string.edit_contact), getString(R.string.remove_contact)),
+            ) { _, which ->
+                when (which) {
+                    0 -> showAddContactDialog(contact)
+                    1 -> {
+                        contacts.remove(contact.uid)
+                        refresh()
                     }
-                    refreshContacts()
                 }
-                .show()
-            true
-        }
+            }
+            .show()
     }
 
-    private fun copyMyCode() {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val clipboard = getSystemService(android.content.ClipboardManager::class.java)
-        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("uid", uid))
-        Toast.makeText(this, R.string.code_copied, Toast.LENGTH_SHORT).show()
+    private fun requestStartupPermissions() {
+        val permissions = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions += Manifest.permission.POST_NOTIFICATIONS
+        }
+        // READ_CONTACTS habilita a videochamada direta do WhatsApp; sem ela o
+        // app cai para a conversa, que funciona igual. Câmera e microfone NÃO
+        // são pedidos aqui: só na primeira chamada pelo app, com justificativa.
+        permissions += Manifest.permission.READ_CONTACTS
+        if (permissions.isNotEmpty()) requestPermissions.launch(permissions.toTypedArray())
     }
+
+    private fun toast(resId: Int) = Toast.makeText(this, resId, Toast.LENGTH_LONG).show()
 
     override fun onDestroy() {
         watcher.stop()
