@@ -16,11 +16,13 @@ import androidx.lifecycle.lifecycleScope
 import com.portaretrato.app.R
 import com.portaretrato.app.call.ui.HomeActivity
 import com.portaretrato.app.databinding.ActivitySlideshowBinding
+import com.portaretrato.app.people.FaceDatabaseStore
 import com.portaretrato.app.photo.PhotoLibrary
 import com.portaretrato.app.photo.SlideshowEngine
 import com.portaretrato.app.photo.SlideshowOrder
 import com.portaretrato.app.photo.SlideshowSettings
 import com.portaretrato.app.photo.SlideshowSettingsStore
+import com.portaretrato.app.recognition.FaceScanCoordinator
 import com.portaretrato.app.recognition.OrientedImageDecoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -56,6 +58,7 @@ class SlideshowActivity : AppCompatActivity() {
     private lateinit var library: PhotoLibrary
     private lateinit var settingsStore: SlideshowSettingsStore
     private lateinit var engine: SlideshowEngine
+    private lateinit var scanner: FaceScanCoordinator
 
     private var advanceJob: Job? = null
     private var hideControlsJob: Job? = null
@@ -87,6 +90,7 @@ class SlideshowActivity : AppCompatActivity() {
         library = PhotoLibrary(this)
         settingsStore = SlideshowSettingsStore(this)
         engine = SlideshowEngine(settingsStore.load())
+        scanner = FaceScanCoordinator(this, library, FaceDatabaseStore(this))
 
         // Restos de uma importação interrompida por reinício do aparelho.
         library.cleanupTemporaries()
@@ -104,15 +108,25 @@ class SlideshowActivity : AppCompatActivity() {
         }
         binding.settingsButton.setOnClickListener { showSettingsDialog() }
         binding.emptyAddButton.setOnClickListener { pickPhotos() }
+        binding.peopleButton.setOnClickListener {
+            startActivity(Intent(this, PeopleActivity::class.java))
+        }
     }
 
     override fun onStart() {
         super.onStart()
         reloadPhotos()
+        // A varredura roda ao fundo enquanto as fotos passam. É aqui porque é
+        // este o momento em que o acervo pode ter mudado — o usuário acabou de
+        // adicionar fotos, ou de voltar da tela de pessoas.
+        scanner.scanPending()
     }
 
     override fun onStop() {
         advanceJob?.cancel()
+        // A varredura segura o interpretador TFLite e os detectores do ML Kit,
+        // dezenas de MB que não fazem sentido com o app fora da tela.
+        scanner.cancel()
         super.onStop()
     }
 
@@ -134,6 +148,7 @@ class SlideshowActivity : AppCompatActivity() {
         binding.emptyState.visibility = View.VISIBLE
         binding.imageA.setImageDrawable(null)
         binding.imageB.setImageDrawable(null)
+        binding.photoNames.visibility = View.GONE
         showControls()
     }
 
@@ -170,7 +185,33 @@ class SlideshowActivity : AppCompatActivity() {
             } ?: return@launch
 
             crossFadeTo(bitmap)
+            showNames(id)
         }
+    }
+
+    /**
+     * Mostra quem foi reconhecido na foto.
+     *
+     * É o que transforma o reconhecimento facial em algo visível para quem
+     * apenas olha o porta-retrato: a foto aparece e o nome aparece junto. Sem
+     * isto, todo o pipeline seria trabalho invisível.
+     *
+     * Some quando ninguém foi reconhecido — uma faixa vazia sobre a foto só
+     * atrapalharia, e "Desconhecido" seria pior ainda.
+     */
+    private fun showNames(photoId: String) {
+        val names = scanner.database.namesIn(photoId)
+        if (names.isEmpty()) {
+            binding.photoNames.visibility = View.GONE
+            return
+        }
+        binding.photoNames.text = when (names.size) {
+            1 -> names[0]
+            // "Ana, João e Maria" — a lista com "e" no fim lê melhor em voz alta
+            // do que uma sequência de vírgulas, e alguém sempre lê em voz alta.
+            else -> names.dropLast(1).joinToString(", ") + " e " + names.last()
+        }
+        binding.photoNames.visibility = View.VISIBLE
     }
 
     /**
@@ -205,6 +246,9 @@ class SlideshowActivity : AppCompatActivity() {
 
     private fun showControls() {
         binding.controls.visibility = View.VISIBLE
+        // Os controles ocupam a mesma borda inferior que a legenda: deixar as
+        // duas visíveis sobreporia o nome aos botões.
+        binding.photoNames.visibility = View.GONE
         binding.photoCount.text = resources.getQuantityString(
             R.plurals.photo_count,
             library.count(),
@@ -220,6 +264,7 @@ class SlideshowActivity : AppCompatActivity() {
     private fun hideControls() {
         hideControlsJob?.cancel()
         binding.controls.visibility = View.GONE
+        engine.current?.let { showNames(it) }
         goImmersive()
     }
 

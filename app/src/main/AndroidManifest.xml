@@ -70,6 +70,13 @@
             android:exported="false"
             android:label="@string/privacy_title" />
 
+        <!-- Não exportada: os rostos do acervo são dado biométrico e nenhum
+             outro aplicativo tem por que abrir esta tela. -->
+        <activity
+            android:name="com.portaretrato.app.ui.PeopleActivity"
+            android:exported="false"
+            android:label="@string/people_title" />
+
         <service
             android:name="com.portaretrato.app.call.CallService"
             android:exported="false"

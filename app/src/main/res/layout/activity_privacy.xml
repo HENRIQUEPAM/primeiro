@@ -50,4 +50,21 @@
         android:layout_weight="1"
         android:layout_marginTop="8dp" />
 
+    <!-- Rostos são dado biométrico. Quem consente também precisa poder
+         desfazer, e num toque, não escondido em configurações do sistema. -->
+    <TextView
+        android:id="@+id/faces_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textSize="15sp" />
+
+    <Button
+        android:id="@+id/forget_faces_button"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/forget_faces"
+        android:textSize="16sp" />
+
 </LinearLayout>

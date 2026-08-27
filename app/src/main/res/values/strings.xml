@@ -98,4 +98,47 @@
         <item quantity="one">%1$d foto no aparelho</item>
         <item quantity="other">%1$d fotos no aparelho</item>
     </plurals>
+
+    <!-- Pessoas nas fotos -->
+    <string name="people_title">Quem está nas fotos</string>
+    <string name="people_known">Pessoas já conhecidas</string>
+    <string name="no_people_yet">Ninguém cadastrado ainda. Conforme as fotos são analisadas, os rostos aparecem aqui para você dizer quem é.</string>
+    <string name="who_is_this">Quem é?</string>
+    <string name="who_is_this_action">Dizer quem é</string>
+    <string name="someone_else">É outra pessoa</string>
+    <string name="is_this_person">É %1$s?</string>
+    <string name="yes_it_is">Sim</string>
+    <string name="no_it_is_not">Não é</string>
+    <string name="skip_face">Pular este rosto</string>
+    <string name="face_to_identify">Rosto encontrado numa foto</string>
+    <string name="person_name_hint">Nome da pessoa</string>
+    <string name="pick_existing">Escolher da lista</string>
+    <string name="rename_person">Mudar o nome</string>
+    <string name="remove_person">Apagar pessoa</string>
+    <string name="remove_person_warning">Apagar %1$s? As fotos continuam no aparelho — só o nome e o reconhecimento são esquecidos.</string>
+    <string name="scanning_progress">Analisando as fotos: %1$d de %2$d</string>
+    <string name="scan_finished">%1$d foto(s) analisadas.</string>
+    <string name="scan_now">Analisar as fotos agora</string>
+    <string name="who_is_in_photos">Quem está nas fotos</string>
+
+    <plurals name="faces_remaining">
+        <item quantity="one">%1$d rosto esperando um nome</item>
+        <item quantity="other">%1$d rostos esperando um nome</item>
+    </plurals>
+
+    <plurals name="appears_in_photos">
+        <item quantity="one">aparece em %1$d foto</item>
+        <item quantity="other">aparece em %1$d fotos</item>
+    </plurals>
+
+    <string name="forget_faces">Esquecer os rostos</string>
+    <string name="forget_faces_warning">O aparelho vai esquecer todos os nomes e rostos aprendidos. As fotos NÃO são apagadas — o porta-retrato continua funcionando normalmente.</string>
+    <string name="faces_forgotten">Rostos e nomes apagados do aparelho.</string>
+    <string name="faces_none">Nenhum rosto foi aprendido neste aparelho.</string>
+    <string name="faces_state">%1$d pessoa(s) reconhecida(s), ocupando %2$d KB neste aparelho. Nada disso sai daqui.</string>
+
+    <plurals name="also_recognized">
+        <item quantity="one">%1$s reconhecida em mais %2$d foto</item>
+        <item quantity="other">%1$s reconhecida em mais %2$d fotos</item>
+    </plurals>
 </resources>

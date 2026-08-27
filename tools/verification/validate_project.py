@@ -241,10 +241,11 @@ def check_cross_package_imports():
             # Import com curinga do pacote inteiro.
             if f"{cls_pkg}.*" in imports:
                 continue
-            if not re.search(rf"\b{cls}\b", body):
-                continue
-            # Uso totalmente qualificado dispensa import.
-            if re.search(rf"{re.escape(cls_pkg)}\.{cls}\b", body):
+            # O lookbehind exclui usos precedidos de ponto: `androidx.core.app
+            # .Person` e `Foo.Person` sao referencias qualificadas ou membros de
+            # outro tipo, nao um uso do nome simples — e um nome de classe
+            # comum ("Person", "Options") colide com facilidade.
+            if not re.search(rf"(?<![.\w]){cls}\b", body):
                 continue
             missing.append(f"{os.path.basename(path)} usa {cls} (de {cls_pkg}) sem import")
 
