@@ -22,6 +22,7 @@ import com.portaretrato.app.call.TrustedContact
 import com.portaretrato.app.call.TrustedContactsStore
 import com.portaretrato.app.call.WhatsAppFallback
 import com.portaretrato.app.databinding.ActivityHomeBinding
+import com.portaretrato.app.ui.PrivacyActivity
 
 /**
  * Tela inicial: a lista de quem se pode chamar.

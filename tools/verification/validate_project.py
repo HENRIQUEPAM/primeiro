@@ -185,6 +185,72 @@ def check_view_binding():
 
 
 # -------------------------------------------------- coerencia do version catalog
+def strip_comments(src):
+    """Remove comentarios de bloco e de linha, e strings literais.
+
+    Sem isso, uma classe apenas MENCIONADA num KDoc conta como uso e gera
+    falso positivo — foi o que aconteceu na primeira versao desta checagem.
+    """
+    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    src = re.sub(r"//.*$", "", src, flags=re.M)
+    src = re.sub(r'"""..*?"""', '""', src, flags=re.S)
+    src = re.sub(r'"(?:[^"\\\n]|\\.)*"', '""', src)
+    return src
+
+
+DECL_RE = re.compile(
+    r"^(?:internal |private |public )?(?:data |sealed |abstract |open |enum |value )*"
+    r"(?:class|object|interface) (\w+)",
+    re.M,
+)
+
+
+def check_cross_package_imports():
+    """Classe de outro pacote usada sem import.
+
+    Foi exatamente o erro que quebrou um build: HomeActivity (em call.ui) usava
+    PrivacyActivity (em ui) sem importar. O compilador so reclama no CI; aqui
+    aparece em segundos.
+    """
+    print("[7] Imports entre pacotes")
+
+    sources = {}
+    class_pkg = {}
+    for path in walk(JAVA, ".kt"):
+        src = open(path, encoding="utf-8").read()
+        match = re.search(r"^package (\S+)", src, re.M)
+        if not match:
+            continue
+        pkg = match.group(1)
+        sources[path] = (pkg, src)
+        for decl in DECL_RE.finditer(src):
+            class_pkg.setdefault(decl.group(1), pkg)
+
+    missing = []
+    for path, (pkg, src) in sources.items():
+        imports = set(re.findall(r"^import (\S+)", src, re.M))
+        body = strip_comments(re.sub(r"^(package|import).*$", "", src, flags=re.M))
+        for cls, cls_pkg in class_pkg.items():
+            if cls_pkg == pkg:
+                continue
+            if f"{cls_pkg}.{cls}" in imports:
+                continue
+            # Import com curinga do pacote inteiro.
+            if f"{cls_pkg}.*" in imports:
+                continue
+            if not re.search(rf"\b{cls}\b", body):
+                continue
+            # Uso totalmente qualificado dispensa import.
+            if re.search(rf"{re.escape(cls_pkg)}\.{cls}\b", body):
+                continue
+            missing.append(f"{os.path.basename(path)} usa {cls} (de {cls_pkg}) sem import")
+
+    if missing:
+        fail(f"{len(missing)} classe(s) usada(s) sem import", "; ".join(sorted(set(missing))[:8]))
+    else:
+        ok("toda classe de outro pacote esta importada")
+
+
 def check_version_catalog():
     print("[6] Version catalog x build.gradle.kts")
     catalog = open(os.path.join(ROOT, "gradle/libs.versions.toml"), encoding="utf-8").read()
@@ -215,6 +281,8 @@ def main():
     check_manifest_classes()
     print()
     check_view_binding()
+    print()
+    check_cross_package_imports()
     print()
     check_version_catalog()
     print()
