@@ -19,6 +19,14 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        ndk {
+            // So as ABIs de celular. x86/x86_64 servem apenas a emuladores e
+            // respondiam por 32,6 MB dos 67 MB do APK — mais da metade do
+            // download, para arquitetura que nenhum aparelho de usuario usa.
+            // A Secao 7.2 da especificacao ja pedia essa restricao.
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     buildTypes {
