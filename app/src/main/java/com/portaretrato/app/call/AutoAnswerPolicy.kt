@@ -52,6 +52,14 @@ class AutoAnswerPolicy(
     private val quietHoursStart: Int? = null,
     /** Hora final da janela permitida, 0..23. */
     private val quietHoursEnd: Int? = null,
+    /**
+     * Chave-mestra do recurso. Ver [FEATURE_ENABLED].
+     *
+     * É parâmetro, e não uma leitura direta da constante, para que a suíte
+     * consiga exercitar a lógica de decisão com o recurso ligado sem que isso
+     * mude o comportamento do app. O padrão é o que vale no aparelho.
+     */
+    private val featureEnabled: Boolean = FEATURE_ENABLED,
 ) {
 
     private val handledCallIds = LinkedHashSet<String>()
@@ -84,6 +92,20 @@ class AutoAnswerPolicy(
         // tela de um idoso. Contato não cadastrado aparece como "Desconhecido",
         // e ponto.
         val displayName = contact?.name ?: UNKNOWN_CALLER_LABEL
+
+        // Chave-mestra: desligada, NENHUMA combinação de entrada atende sozinho.
+        // Vem antes de olhar o contato de propósito — assim um `autoAnswerEnabled`
+        // gravado em disco por uma versão futura, ou uma tela nova que chame
+        // `TrustedContactsStore.setAutoAnswer`, continua sem efeito. O desligado
+        // deixa de depender de "ninguém escreve true" e passa a ser um fato só.
+        //
+        // As checagens de convite duplicado e de chamada em andamento ficam
+        // ACIMA desta linha por não terem a ver com o recurso: elas evitam duas
+        // telas de chamada e a derrubada de uma conversa em curso, e valem
+        // sempre.
+        if (!featureEnabled) {
+            return AutoAnswerDecision.Ring(displayName)
+        }
 
         // Desconhecido nunca atende sozinho — mas toca, para o usuário decidir.
         if (contact == null || !contact.autoAnswerEnabled) {
@@ -124,6 +146,35 @@ class AutoAnswerPolicy(
     }
 
     companion object {
+
+        /**
+         * **Atendimento automático: DESLIGADO por decisão do dono do produto.**
+         *
+         * O recurso não consta da especificação v3.1, que descreve campainha e
+         * ação "Atender". Como ele abre câmera e microfone da casa de alguém sem
+         * nenhuma interação humana, a decisão não é de quem escreve o código.
+         *
+         * O código fica no projeto, testado, em vez de ser apagado: ele é a
+         * única razão técnica para o porta-retrato ter chamada própria em vez de
+         * continuar delegando ao WhatsApp — nenhum app de terceiro pode ser
+         * atendido por outro. Apagar hoje significaria reescrever depois, e a
+         * lógica delicada (janela de horário, convite duplicado, nome vindo só
+         * da agenda local) se perderia junto.
+         *
+         * **Para religar**, três coisas, nesta ordem:
+         *  1. trocar esta constante para `true`;
+         *  2. criar a tela que deixa o dono marcar contato por contato — hoje
+         *     `TrustedContactsStore.setAutoAnswer` existe e nenhuma tela o
+         *     chama, então nenhum contato consegue ficar marcado;
+         *  3. decidir a janela de horário (`quietHoursStart`/`quietHoursEnd`),
+         *     hoje nula, isto é, sem restrição.
+         *
+         * Enquanto isto for `false`, `decide` devolve `Ring` para qualquer
+         * entrada — inclusive para um contato com `autoAnswerEnabled = true`
+         * gravado em disco. A suíte varre todas as combinações para garantir.
+         */
+        const val FEATURE_ENABLED = false
+
         /**
          * 3 segundos: tempo suficiente para ler o nome na tela e recusar, sem
          * fazer quem ligou achar que ninguém vai atender.

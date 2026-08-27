@@ -136,7 +136,10 @@ fun testAutoAnswer() {
 
     fun invite(id: String, from: String) = CallInvite(id, from, "?", null, "vovo", 0L, true)
 
-    val policy = AutoAnswerPolicy({ contacts })
+    // `featureEnabled = true` de proposito: este bloco testa a LOGICA de
+    // decisao. O que vale no aparelho e o padrao da constante, verificado no
+    // bloco [3b] logo abaixo.
+    val policy = AutoAnswerPolicy({ contacts }, featureEnabled = true)
     val d1 = policy.decide(invite("c1", "filha"), callInProgress = false, hourOfDay = 14)
     check("contato confiavel atende sozinho", d1 is AutoAnswerDecision.Answer, "=$d1")
     check("atende com o nome certo", (d1 as? AutoAnswerDecision.Answer)?.contactName == "Ana")
@@ -159,7 +162,7 @@ fun testAutoAnswer() {
     check("apos forget, o mesmo id volta a valer", policy.decide(invite("c1", "filha"), false, 14) is AutoAnswerDecision.Answer)
 
     // Janela de horario que cruza a meia-noite: permitido das 7h as 21h.
-    val daytime = AutoAnswerPolicy({ contacts }, quietHoursStart = 7, quietHoursEnd = 21)
+    val daytime = AutoAnswerPolicy({ contacts }, quietHoursStart = 7, quietHoursEnd = 21, featureEnabled = true)
     check("dentro da janela atende", daytime.decide(invite("d1", "filha"), false, 10) is AutoAnswerDecision.Answer)
     check("fora da janela apenas toca", daytime.decide(invite("d2", "filha"), false, 3) is AutoAnswerDecision.Ring)
     check("limite inferior inclusivo", daytime.decide(invite("d3", "filha"), false, 7) is AutoAnswerDecision.Answer)
@@ -167,15 +170,82 @@ fun testAutoAnswer() {
     check("22h esta fora", daytime.decide(invite("d5", "filha"), false, 22) is AutoAnswerDecision.Ring)
 
     // Janela invertida: permitido das 22h as 6h (atravessa a meia-noite).
-    val night = AutoAnswerPolicy({ contacts }, quietHoursStart = 22, quietHoursEnd = 6)
+    val night = AutoAnswerPolicy({ contacts }, quietHoursStart = 22, quietHoursEnd = 6, featureEnabled = true)
     check("janela invertida: 23h dentro", night.decide(invite("n1", "filha"), false, 23) is AutoAnswerDecision.Answer)
     check("janela invertida: 2h dentro", night.decide(invite("n2", "filha"), false, 2) is AutoAnswerDecision.Answer)
     check("janela invertida: 12h fora", night.decide(invite("n3", "filha"), false, 12) is AutoAnswerDecision.Ring)
 
     // Limite de memoria de convites.
-    val bounded = AutoAnswerPolicy({ contacts })
+    val bounded = AutoAnswerPolicy({ contacts }, featureEnabled = true)
     repeat(200) { bounded.decide(invite("bulk$it", "filha"), false, 14) }
     check("memoria de convites nao cresce sem limite", true) // sem crash/OOM
+}
+
+// ---------------------------------------------------------------------------
+// 3b. A chave-mestra do atendimento automatico
+// ---------------------------------------------------------------------------
+fun testAutoAnswerKillSwitch() {
+    println("[3b] Chave-mestra do atendimento automatico")
+
+    check(
+        "o recurso vem DESLIGADO de fabrica",
+        !AutoAnswerPolicy.FEATURE_ENABLED,
+        "FEATURE_ENABLED=${AutoAnswerPolicy.FEATURE_ENABLED}",
+    )
+
+    // O caso perigoso: um contato marcado como confiavel em disco, por uma
+    // versao futura ou por um arquivo editado a mao. Com a chave desligada ele
+    // NAO pode atender sozinho.
+    val marcado = TrustedContact("filha", "Ana", "+5511988887777", autoAnswerEnabled = true)
+
+    fun invite(id: String, from: String) = CallInvite(id, from, "?", null, "vovo", 0L, true)
+
+    // Varredura de todas as combinacoes que chegam ate a decisao: contato
+    // marcado / nao marcado / ausente, com e sem janela de horario, nas 24
+    // horas do dia. Nenhuma pode produzir Answer.
+    var atendeuSozinho = 0
+    var casos = 0
+    val listas = listOf(
+        listOf(marcado),
+        listOf(marcado.copy(autoAnswerEnabled = false)),
+        emptyList(),
+    )
+    val janelas = listOf(null to null, 7 to 21, 22 to 6, 0 to 23)
+
+    for ((i, lista) in listas.withIndex()) {
+        for ((j, janela) in janelas.withIndex()) {
+            // Sem featureEnabled: usa o padrao, que e o que roda no aparelho.
+            val p = AutoAnswerPolicy({ lista }, quietHoursStart = janela.first, quietHoursEnd = janela.second)
+            for (hora in 0..23) {
+                casos++
+                val d = p.decide(invite("k-$i-$j-$hora", "filha"), callInProgress = false, hourOfDay = hora)
+                if (d is AutoAnswerDecision.Answer) atendeuSozinho++
+            }
+        }
+    }
+    check(
+        "nenhuma das $casos combinacoes atende sozinho",
+        atendeuSozinho == 0,
+        "=$atendeuSozinho",
+    )
+
+    // E o resto do comportamento continua correto com a chave desligada.
+    val p = AutoAnswerPolicy({ listOf(marcado) })
+    val toque = p.decide(invite("t1", "filha"), false, 14)
+    check("continua tocando", toque is AutoAnswerDecision.Ring, "=$toque")
+    check("com o nome da agenda", (toque as? AutoAnswerDecision.Ring)?.displayName == "Ana")
+
+    val estranho = p.decide(invite("t2", "ninguem"), false, 14)
+    check("desconhecido nao ganha nome do convite",
+        (estranho as? AutoAnswerDecision.Ring)?.displayName == "Desconhecido",
+        "=$estranho")
+
+    // As protecoes que NAO sao do recurso continuam valendo.
+    check("ocupado ainda recusa",
+        (p.decide(invite("t3", "filha"), callInProgress = true, hourOfDay = 14) as? AutoAnswerDecision.Reject)
+            ?.reason == CallEndReason.BUSY)
+    check("convite duplicado ainda e recusado",
+        p.decide(invite("t1", "filha"), false, 14) is AutoAnswerDecision.Reject)
 }
 
 fun main() {
@@ -183,6 +253,7 @@ fun main() {
     testStateMachine(); println()
     testProtocol(); println()
     testAutoAnswer(); println()
+    testAutoAnswerKillSwitch(); println()
     if (failures == 0) println("TODOS OS TESTES PASSARAM")
     else { println("$failures TESTE(S) FALHARAM"); kotlin.system.exitProcess(1) }
 }

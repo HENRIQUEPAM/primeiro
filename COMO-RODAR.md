@@ -27,6 +27,10 @@ sdk.dir=/caminho/para/Android/Sdk
 
 ## 2. Firebase
 
+> **Passo a passo completo, com o que mudou no console e o que custa dinheiro:
+> [`docs/FIREBASE.md`](docs/FIREBASE.md).** O resumo abaixo serve para quem já
+> conhece o console.
+
 O projeto precisa de um projeto Firebase. Se você já tem o do Porta Retrato,
 use o mesmo.
 

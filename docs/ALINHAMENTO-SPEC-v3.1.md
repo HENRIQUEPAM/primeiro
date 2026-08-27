@@ -16,12 +16,22 @@ Ela dá acesso total ao projeto `porta-retrato-1fb3c`: ler e apagar todo o
 Firestore e o Storage **ignorando as regras de segurança**, e emitir token de
 login de qualquer usuário. Ela trafegou por um chat.
 
-**Revogue:** Firebase Console → Configurações do projeto → Contas de serviço →
-Gerenciar chaves → apagar `d73eda4ccf11039a2e103d2881eb56ee6ebfa09f`.
+**Decisão do dono do projeto: manter a chave, guardada.** Registrado aqui
+porque a exposição não desaparece com o tempo — quem for auditar isto depois
+precisa saber que foi uma escolha consciente, não um esquecimento. Se um dia
+mudar de ideia: Firebase Console → Configurações do projeto → Contas de
+serviço → Gerenciar chaves → apagar
+`d73eda4ccf11039a2e103d2881eb56ee6ebfa09f`. Revogar não quebra o app — o APK
+não usa essa chave.
 
-Não usei essa chave para nada e ela **não está no repositório** — o
-`.gitignore` cobre `google-services.json`, e a chave de serviço nunca foi
-copiada para cá.
+Não usei essa chave para nada e ela **não está no repositório**. Verificado, não
+suposto: `git grep 'BEGIN PRIVATE KEY'` em todas as revisões não encontra nada,
+e nenhum arquivo `*adminsdk*`, `*serviceaccount*` ou `*.pem` jamais foi
+adicionado ao histórico.
+
+O que o app precisa é outro arquivo, o `google-services.json` — esse é seguro e
+vai dentro do APK de qualquer forma. O passo a passo está em
+[`docs/FIREBASE.md`](FIREBASE.md).
 
 O que o app precisa é o `google-services.json` (Configurações do projeto → aba
 Geral → seus apps → Android). Esse é seguro: vai dentro do APK de qualquer
@@ -29,7 +39,7 @@ forma.
 
 ---
 
-## 🔴 Conflito de produto: atendimento automático
+## ✅ Decidido: atendimento automático fica DESLIGADO
 
 Eu propus e implementei **atendimento automático** para contatos de confiança —
 o porta-retrato atende sozinho após 3 s, sem ninguém tocar em nada. Argumentei
@@ -41,19 +51,37 @@ campainha + ação "Atender", com "botão único de encerrar, sem mute na v1".
 
 Isso não é detalhe: atender sozinho abre câmera e microfone da casa de uma
 pessoa idosa sem interação humana. É a decisão de privacidade mais forte do
-produto inteiro, e não é minha para tomar.
+produto inteiro, e não era minha para tomar.
 
-Deixei `AutoAnswerPolicy` no repositório, **desligada por padrão** (nenhum
-contato nasce com `autoAnswerEnabled = true`). Três caminhos possíveis:
+**Decisão do dono do projeto: manter desligado.**
 
-| Opção | Consequência |
-| --- | --- |
-| **Remover** | Adere 100% à spec. É o padrão se você não responder |
-| **Manter como opt-in por contato** | Como está: precisa de ação explícita do dono, com contagem regressiva visível e botão de recusar |
-| **Levar para a spec v3.2** | Passa por Segurança/UX antes de existir em código |
+O que mudou no código para isso valer de verdade:
 
-Se ninguém decidir, o certo é remover — a spec é a fonte da verdade, não a
-minha proposta.
+Antes, "desligado" era uma *consequência*: nenhuma tela chamava
+`TrustedContactsStore.setAutoAnswer`, então nada gravava `true`. Frágil — uma
+edição futura na tela de contatos religaria o recurso sem ninguém decidir nada.
+
+Agora é um *fato único e auditável*: `AutoAnswerPolicy.FEATURE_ENABLED = false`,
+consultado no topo de `decide`, **antes** de olhar o contato. Com ele em
+`false`, `decide` devolve `Ring` para qualquer entrada — inclusive para um
+contato com `autoAnswerEnabled = true` gravado em disco por uma versão futura
+ou por um arquivo editado à mão.
+
+É o mesmo desenho do `CameraAccessPolicy`, e é verificado do mesmo jeito: a
+suíte varre **288 combinações** (contato marcado / não marcado / ausente ×
+quatro janelas de horário × 24 horas do dia) e confirma que nenhuma produz
+`Answer`.
+
+As proteções que **não** são do recurso continuam ativas acima da chave —
+convite duplicado do FCM e chamada já em andamento seguem sendo recusadas,
+porque evitam duas telas de chamada e a derrubada de uma conversa em curso.
+
+**Por que o código ficou em vez de ser apagado:** ele é a única razão técnica
+para o porta-retrato ter chamada própria — nenhum app de terceiro (WhatsApp,
+Meet, Telegram) pode ser atendido por outro aplicativo. Apagar hoje significaria
+reescrever depois, e a lógica delicada (janela que cruza a meia-noite, convite
+duplicado, nome vindo só da agenda local) se perderia junto. O KDoc de
+`FEATURE_ENABLED` lista os três passos para religar, se um dia for o caso.
 
 ---
 
