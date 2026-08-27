@@ -7,9 +7,15 @@ on:
       - main
   workflow_dispatch:
 
+# Necessario para o job publicar o Release com o APK anexado.
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      TAG: apk-teste
 
     steps:
       - uses: actions/checkout@v4
@@ -44,13 +50,64 @@ jobs:
       - name: Build debug
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Publicar APK
+      - name: Preparar o APK para download
+        id: apk
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/porta-retrato.apk
+          echo "sha256=$(sha256sum dist/porta-retrato.apk | cut -d" " -f1)" >> "$GITHUB_OUTPUT"
+          echo "size=$(du -h dist/porta-retrato.apk | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar APK como artefato
         uses: actions/upload-artifact@v4
         with:
-          name: portaretrato-chamadas-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: porta-retrato-apk
+          path: dist/porta-retrato.apk
           if-no-files-found: error
           retention-days: 30
+
+      # Release com tag fixa: o link para download NAO muda entre builds, entao
+      # da para mandar o mesmo endereco por WhatsApp e ele sempre aponta para a
+      # versao mais recente. Diferente do artefato do Actions, o arquivo de um
+      # Release baixa sem login — que e o que permite instalar direto no celular.
+      - name: Publicar Release para instalacao no celular
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES=$(cat <<'EOM'
+          APK de teste do Porta Retrato, para instalar direto no celular.
+
+          **Como instalar:** abra este link no navegador do celular, toque em
+          `porta-retrato.apk`, e confirme. Se o Android avisar sobre "app de
+          fonte desconhecida", toque em Configuracoes e permita a instalacao
+          para o navegador que voce esta usando.
+
+          Requisitos: Android 8.0 ou superior.
+
+          **O que este APK faz hoje:** abre, mostra as telas, pede as
+          permissoes e a tela de privacidade da camera funciona. Ele foi
+          compilado com um `google-services.json` de placeholder, entao **NAO
+          autentica e NAO faz chamada** — na tela inicial aparece "Falha ao
+          entrar". Isso e esperado, nao e defeito. Para o APK funcional, e
+          preciso cadastrar o segredo GOOGLE_SERVICES_JSON no repositorio.
+
+          Este app instala LADO A LADO com o Porta Retrato ja existente
+          (applicationId diferente), sem substituir nada.
+          EOM
+          )
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/porta-retrato.apk --clobber
+            gh release edit "$TAG" --notes "$NOTES"
+          else
+            gh release create "$TAG" dist/porta-retrato.apk \
+              --title "Porta Retrato — APK de teste" \
+              --notes "$NOTES" \
+              --prerelease \
+              --target "$GITHUB_SHA"
+          fi
+          echo "### APK publicado" >> "$GITHUB_STEP_SUMMARY"
+          echo "Baixe em: https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/porta-retrato.apk" >> "$GITHUB_STEP_SUMMARY"
+          echo "SHA-256: ${{ steps.apk.outputs.sha256 }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publicar relatórios em caso de falha
         if: failure()
