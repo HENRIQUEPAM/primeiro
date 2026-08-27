@@ -139,6 +139,11 @@ O que **foi** verificado:
 | --- | --- |
 | Lógica de chamada (máquina de estados, protocolo, auto-atendimento) | ✅ 53 asserções em JVM |
 | Pipeline de reconhecimento facial | ✅ 25 asserções em JVM |
+| Índice de pessoas (nomeação em cascata, homônimos, persistência) | ✅ 76 asserções em JVM |
+| Slideshow (ordem, embaralhamento, acervo mudando) | ✅ 39 asserções em JVM |
+| Política de câmera, auditoria e AES-GCM | ✅ 50 asserções em JVM |
+| Modelo `mobilefacenet.tflite` no APK | ✅ entrada `[1,112,112,3]`, saída `[1,192]`, ambos FLOAT32 |
+| Tipagem de `recognition/`, `people/` e `photo/` contra stubs | ✅ 0 erros |
 | Sintaxe Kotlin de todos os fontes | ✅ 0 erros de parse |
 | XML bem formado (manifesto, layouts, valores) | ✅ |
 | Referências `@string`/`@color`/`@drawable`/`@layout` resolvem | ✅ |
@@ -149,8 +154,10 @@ O que **foi** verificado:
 | Sintaxe da Cloud Function | ✅ `node --check` |
 
 ```bash
-python3 tools/verification/validate_project.py     # 6 verificações do projeto
+KOTLINC=/caminho/para/bin/kotlinc tools/verification/run.sh
 ```
+
+Roda as seis suítes e as 7 verificações estáticas num comando só.
 
 O que **não** foi verificado e você deve esperar encontrar:
 
@@ -161,6 +168,13 @@ O que **não** foi verificado e você deve esperar encontrar:
   `WebRtcEngine.kt` é o arquivo com maior chance de precisar de ajuste:
   `DefaultVideoEncoderFactory`, `addTrack` e `onTrack` mudaram entre versões.
 - **Comportamento em aparelho.** Nada rodou em Android.
+- **Reconhecimento com fotos de verdade.** Os 76 testes do índice de pessoas
+  usam embeddings sintéticos com similaridade controlada — eles verificam a
+  *lógica* de decisão, não a precisão do modelo. Os limiares
+  (`AUTO_LINK_THRESHOLD = 0.62`, `AUTO_LINK_MARGIN = 0.06`) são um ponto de
+  partida razoável, e a calibração com o acervo real está descrita na seção
+  "Como medir" de [`docs/ANALISE-E-PLANO.md`](docs/ANALISE-E-PLANO.md). Espere
+  precisar ajustá-los depois de ver o app errar com fotos da sua família.
 - **Rede real.** WebRTC funciona no Wi-Fi de casa e falha na rua; é o teste que
   mais consome tempo e o único que importa de verdade.
 

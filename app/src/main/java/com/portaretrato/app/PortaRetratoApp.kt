@@ -3,6 +3,9 @@ package com.portaretrato.app
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import com.portaretrato.app.people.FaceDatabaseStore
+import com.portaretrato.app.photo.PhotoLibrary
+import com.portaretrato.app.recognition.FaceScanCoordinator
 import com.portaretrato.app.security.AppVisibility
 import com.portaretrato.app.security.CameraGuard
 import com.portaretrato.app.security.NotificationCameraNotice
@@ -11,9 +14,11 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Application do Porta Retrato.
  *
- * Dona do [CameraGuard]. Ele é único no processo de propósito: dois guardas
- * significariam dois donos possíveis da câmera ao mesmo tempo, e a garantia de
- * exclusividade cairia por terra.
+ * Dona do [CameraGuard] e do [FaceScanCoordinator]. Os dois são únicos no
+ * processo de propósito: dois guardas significariam dois donos possíveis da
+ * câmera ao mesmo tempo, e a garantia de exclusividade cairia por terra; dois
+ * índices de rostos significariam duas cópias do banco disputando o mesmo
+ * arquivo, e a última a gravar apagaria o trabalho da outra.
  */
 class PortaRetratoApp : Application() {
 
@@ -38,6 +43,22 @@ class PortaRetratoApp : Application() {
         )
     }
 
+    /**
+     * Dono do índice de rostos — pelo mesmo motivo do [cameraGuard].
+     *
+     * Cada tela criando o seu carregaria uma cópia própria do banco em memória,
+     * e a última a gravar venceria: o usuário nomearia a avó na tela de
+     * pessoas, voltaria ao porta-retrato, e a varredura salvaria a cópia antiga
+     * por cima — os nomes recém-digitados sumiriam sem nenhum sinal.
+     *
+     * Uma instância só no processo elimina a classe inteira de problema, em vez
+     * de tentar sincronizar duas cópias.
+     */
+    private val faceScannerDelegate = lazy {
+        FaceScanCoordinator(this, PhotoLibrary(this), FaceDatabaseStore(this))
+    }
+    val faceScanner: FaceScanCoordinator by faceScannerDelegate
+
     private fun currentVisibility(): AppVisibility = when {
         startedActivities.get() > 0 -> AppVisibility.FOREGROUND
         mediaForegroundServiceRunning -> AppVisibility.FOREGROUND_SERVICE
@@ -55,7 +76,17 @@ class PortaRetratoApp : Application() {
         }
 
         override fun onActivityStopped(activity: Activity) {
-            startedActivities.updateAndGet { if (it > 0) it - 1 else 0 }
+            val visible = startedActivities.updateAndGet { if (it > 0) it - 1 else 0 }
+            // A varredura para quando o APP sai da tela, nao quando uma tela
+            // sai. Cancelar no onStop de cada Activity mataria a varredura que
+            // a tela seguinte acabou de iniciar — o onStop da tela antiga roda
+            // DEPOIS do onCreate da nova.
+            //
+            // `isInitialized` evita construir o coordenador (e carregar o banco
+            // do disco) so para cancelar algo que nunca comecou.
+            if (visible == 0 && faceScannerDelegate.isInitialized()) {
+                faceScanner.cancel()
+            }
         }
 
         override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit

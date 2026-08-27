@@ -8,10 +8,10 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.R
 import com.portaretrato.app.databinding.ActivityPeopleBinding
 import com.portaretrato.app.people.FaceDatabase
-import com.portaretrato.app.people.FaceDatabaseStore
 import com.portaretrato.app.people.PendingFace
 import com.portaretrato.app.people.Person
 import com.portaretrato.app.photo.FaceThumbnails
@@ -44,7 +44,8 @@ class PeopleActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPeopleBinding
     private lateinit var library: PhotoLibrary
-    private lateinit var coordinator: FaceScanCoordinator
+    /** Compartilhado com o slideshow: ver [PortaRetratoApp.faceScanner]. */
+    private val coordinator: FaceScanCoordinator by lazy { PortaRetratoApp.from(this).faceScanner }
     private lateinit var adapter: PersonAdapter
 
     private val db: FaceDatabase get() = coordinator.database
@@ -58,7 +59,6 @@ class PeopleActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         library = PhotoLibrary(this)
-        coordinator = FaceScanCoordinator(this, library, FaceDatabaseStore(this))
 
         adapter = PersonAdapter(onClick = ::showPersonMenu)
         binding.peopleList.layoutManager = LinearLayoutManager(this)
@@ -291,7 +291,7 @@ class PeopleActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        coordinator.cancel()
+        // Ver SlideshowActivity.onStop: cancelar a varredura é do app inteiro.
         super.onDestroy()
     }
 }

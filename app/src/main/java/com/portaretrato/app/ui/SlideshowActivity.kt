@@ -15,8 +15,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.portaretrato.app.R
 import com.portaretrato.app.call.ui.HomeActivity
+import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.databinding.ActivitySlideshowBinding
-import com.portaretrato.app.people.FaceDatabaseStore
 import com.portaretrato.app.photo.PhotoLibrary
 import com.portaretrato.app.photo.SlideshowEngine
 import com.portaretrato.app.photo.SlideshowOrder
@@ -58,7 +58,8 @@ class SlideshowActivity : AppCompatActivity() {
     private lateinit var library: PhotoLibrary
     private lateinit var settingsStore: SlideshowSettingsStore
     private lateinit var engine: SlideshowEngine
-    private lateinit var scanner: FaceScanCoordinator
+    /** Compartilhado com a tela de pessoas: ver [PortaRetratoApp.faceScanner]. */
+    private val scanner: FaceScanCoordinator by lazy { PortaRetratoApp.from(this).faceScanner }
 
     private var advanceJob: Job? = null
     private var hideControlsJob: Job? = null
@@ -90,7 +91,6 @@ class SlideshowActivity : AppCompatActivity() {
         library = PhotoLibrary(this)
         settingsStore = SlideshowSettingsStore(this)
         engine = SlideshowEngine(settingsStore.load())
-        scanner = FaceScanCoordinator(this, library, FaceDatabaseStore(this))
 
         // Restos de uma importação interrompida por reinício do aparelho.
         library.cleanupTemporaries()
@@ -124,9 +124,11 @@ class SlideshowActivity : AppCompatActivity() {
 
     override fun onStop() {
         advanceJob?.cancel()
-        // A varredura segura o interpretador TFLite e os detectores do ML Kit,
-        // dezenas de MB que não fazem sentido com o app fora da tela.
-        scanner.cancel()
+        // A varredura NÃO é cancelada aqui: ela é do app, não desta tela, e
+        // parar ao ir para a tela de pessoas mataria justamente a varredura que
+        // aquela tela acabou de pedir. Quem cancela é o PortaRetratoApp, quando
+        // a última tela some — aí sim o interpretador TFLite e os detectores do
+        // ML Kit, dezenas de MB, deixam de fazer sentido.
         super.onStop()
     }
 

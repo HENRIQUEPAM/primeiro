@@ -1,26 +1,30 @@
 # Suítes de verificação
 
-Duas suítes, ambas em JVM pura:
-
-- **`Verify.kt`** — pipeline de reconhecimento facial (25 asserções). Precisa
-  dos stubs em `stubs/`.
-- **`VerifyCall.kt`** — módulo de chamadas (53 asserções). **Não precisa de
-  stub nenhum**: `CallModels`, `CallStateMachine`, `SignalingProtocol` e
-  `AutoAnswerPolicy` são Kotlin puro, sem dependência de Android.
+## Rode tudo de uma vez
 
 ```bash
-# Módulo de chamadas
-$KOTLINC -nowarn -d /tmp/out \
-    app/src/main/java/com/portaretrato/app/call/CallModels.kt \
-    app/src/main/java/com/portaretrato/app/call/CallStateMachine.kt \
-    app/src/main/java/com/portaretrato/app/call/SignalingProtocol.kt \
-    app/src/main/java/com/portaretrato/app/call/AutoAnswerPolicy.kt \
-    tools/verification/VerifyCall.kt
-java -cp "/tmp/out:$(dirname $KOTLINC)/../lib/kotlin-stdlib.jar" VerifyCallKt
+KOTLINC=/caminho/para/bin/kotlinc tools/verification/run.sh
 ```
 
-`WebRtcEngine.kt` e `FirestoreSignaling.kt` ficam de fora: dependem de
-bibliotecas reais e não foram compilados. Ver `docs/CHAMADAS.md`.
+`run.sh` compila e executa as seis suítes e roda a validação estática. **É o
+único lugar onde a lista de fontes de cada suíte fica escrita.** Antes cada
+suíte era invocada com a lista digitada à mão, e bastou um arquivo novo em
+`recognition/` (o `FaceScanCoordinator`, que depende de `people/` e `photo/`)
+para quebrar duas suítes sem ninguém ter mexido nelas.
+
+| Suíte | Cobre | Precisa de stubs |
+| --- | --- | --- |
+| `Verify.kt` | pipeline de reconhecimento: alinhamento, galeria, protótipos, `inSampleSize`, codec | sim |
+| `VerifyPeople.kt` | índice de pessoas: cascata de nomeação, homônimos, teto da fila, fotos apagadas, round-trip binário | sim |
+| `VerifyPhoto.kt` | slideshow: ordem, embaralhamento, acervo mudando durante a exibição | não |
+| `VerifyCall.kt` | máquina de estados da chamada e protocolo de sinalização | não |
+| `VerifySpec.kt` | alinhamento com a especificação v3.1: assinatura ECDSA, número de segurança, E.164 | não |
+| `VerifySecurity.kt` | política de câmera (288 combinações), auditoria, fluxo de permissão, AES-GCM | não |
+| `validate_project.py` | XML, referências a recursos, classes do manifesto, IDs de ViewBinding, imports entre pacotes, catálogo de versões | — |
+
+Ficam **de fora** de qualquer compilação aqui os fontes que dependem de
+bibliotecas reais: `WebRtcEngine.kt`, `FirestoreSignaling.kt`, `CameraGuard.kt`,
+`CameraNotice.kt`, `KeystoreKeyProvider.kt`. Ver `docs/CHAMADAS.md`.
 
 ---
 
