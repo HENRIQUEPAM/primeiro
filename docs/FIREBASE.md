@@ -3,9 +3,28 @@
 Passo a passo para sair de "os botões de WhatsApp e telefone funcionam, o do app
 não" para "a família liga e o porta-retrato toca".
 
-São **quatro etapas**. As três primeiras são de graça e levam uns 20 minutos.
-A quarta (TURN) é a única que custa dinheiro, e é a que decide se a chamada
-funciona fora do Wi-Fi de casa.
+São **cinco etapas**. As quatro primeiras são de graça e levam uns 20 minutos.
+A de TURN é a única que custa dinheiro, e é a que decide se a chamada funciona
+fora do Wi-Fi de casa.
+
+## Atalhos: links diretos
+
+O console do Firebase esconde tudo em menus que mudam de lugar entre versões.
+Como o projeto é o `porta-retrato-1fb3c`, estes links caem **exatamente** na
+tela certa, sem navegar:
+
+| Etapa | Link direto |
+| --- | --- |
+| 1. Apps registrados | https://console.firebase.google.com/project/porta-retrato-1fb3c/settings/general |
+| 2. Ligar login anônimo | https://console.firebase.google.com/project/porta-retrato-1fb3c/authentication/providers |
+| 3. Criar o Firestore | https://console.firebase.google.com/project/porta-retrato-1fb3c/firestore |
+| 3. Colar as regras | https://console.firebase.google.com/project/porta-retrato-1fb3c/firestore/rules |
+| 3. Criar o índice | https://console.firebase.google.com/project/porta-retrato-1fb3c/firestore/indexes |
+| 5. Cadastrar o segredo | https://github.com/HENRIQUEPAM/primeiro/settings/secrets/actions/new |
+
+> **A Etapa 1 já está feita.** O `google-services.json` do projeto mostra os dois
+> apps registrados — `com.portaretrato.app` (produção) e
+> `com.portaretrato.chamadas` (este). Não precisa refazer.
 
 > **Você não precisa da chave Admin SDK para nada disto.** Aquele arquivo
 > `...firebase-adminsdk-....json` serve para um servidor seu falar com o
@@ -16,10 +35,14 @@ funciona fora do Wi-Fi de casa.
 
 ---
 
-## Etapa 1 — Registrar o app Android no projeto
+## Etapa 1 — Registrar o app Android no projeto ✅ FEITA
 
-O projeto `porta-retrato-1fb3c` já existe. Falta registrar **este** app dentro
-dele, porque o `applicationId` é diferente do app de produção:
+Conferido no `google-services.json` do projeto: os dois apps já estão
+registrados, `com.portaretrato.app` (produção) e `com.portaretrato.chamadas`
+(este). **Pule para a Etapa 2.** O passo abaixo fica registrado para o caso de
+alguém precisar refazer.
+
+O `applicationId` é diferente do app de produção:
 
 ```
 com.portaretrato.chamadas
@@ -50,10 +73,21 @@ Guarde esse arquivo. As etapas 2 e 3 usam ele.
 
 Sem isto o app sobe, mostra "Falha ao entrar" e cai para WhatsApp/telefone.
 
-1. Menu lateral → **Criação** (ou **Build**) → **Authentication**
-2. Se for a primeira vez: **Vamos começar**
-3. Aba **Sign-in method** (Método de login)
-4. Na lista de provedores, **Anônimo** → clique → chave **Ativar** → **Salvar**
+**Abra direto:**
+https://console.firebase.google.com/project/porta-retrato-1fb3c/authentication/providers
+
+O que você vai ver, em ordem:
+
+- Se for a primeira vez no Authentication, aparece uma tela de boas-vindas com o
+  botão **Vamos começar** (ou **Get started**). Clique.
+- Cai numa lista chamada **Provedores de login** (ou **Sign-in providers**), com
+  Google, E-mail/senha, Telefone, Facebook e assim por diante.
+- **Anônimo** costuma ficar no fim da lista, embaixo de um grupo separado. Se não
+  achar, role até o fim — ele não está junto dos provedores populares.
+- Clique em **Anônimo** → aparece uma chavinha **Ativar** (**Enable**) → ligue →
+  **Salvar**.
+
+Feito, a linha "Anônimo" passa a mostrar **Ativado** na lista.
 
 Por que anônimo: o porta-retrato não deve pedir e-mail e senha a uma pessoa
 idosa. A identidade do aparelho é a chave ECDSA no Android Keystore
@@ -68,9 +102,11 @@ Firestore saber que a requisição vem de *algum* aparelho autenticado.
 O repositório já traz as regras escritas. Sem publicá-las, ou o banco fica
 aberto para qualquer um, ou fechado para todos — nos dois casos, errado.
 
-1. Menu lateral → **Criação** → **Firestore Database** → **Criar banco de
-   dados** (se ainda não existir)
-2. Modo: **produção** (as regras do repositório substituem tudo em seguida)
+**Abra direto:**
+https://console.firebase.google.com/project/porta-retrato-1fb3c/firestore
+
+1. Se o banco ainda não existe, o botão é **Criar banco de dados**.
+2. Modo: **produção** (as regras do repositório substituem tudo em seguida).
 3. Local: **`southamerica-east1`** (São Paulo). Escolha com cuidado — **o local
    não pode ser mudado depois**, e a latência da sinalização é o que faz a
    chamada demorar a começar.
@@ -83,11 +119,31 @@ firebase use porta-retrato-1fb3c
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-Se preferir sem instalar nada: aba **Regras** no console, cole o conteúdo de
-`firebase/firestore.rules`, **Publicar**. Os índices de
-`firebase/firestore.indexes.json` também podem ser criados à mão, mas é bem mais
-trabalhoso — o Firestore avisa no log qual índice falta quando uma consulta
-falha.
+### Sem instalar nada (mais simples)
+
+**Regras** — abra
+https://console.firebase.google.com/project/porta-retrato-1fb3c/firestore/rules
+, apague tudo o que estiver no editor, cole o conteúdo inteiro de
+`firebase/firestore.rules` e clique em **Publicar**.
+
+**Índice** — abra
+https://console.firebase.google.com/project/porta-retrato-1fb3c/firestore/indexes
+→ **Criar índice** e preencha:
+
+| Campo | Valor |
+| --- | --- |
+| ID da coleção | `callSessions` |
+| Escopo da consulta | **Grupo de coleções** (não "Coleção") |
+| Campo 1 | `calleeDeviceId` — Crescente |
+| Campo 2 | `state` — Crescente |
+| Campo 3 | `createdAt` — **Decrescente** |
+
+O escopo **Grupo de coleções** é o detalhe que costuma passar batido: as sessões
+de chamada ficam em subcoleções de cada pareamento, e a consulta atravessa
+todas. Com escopo "Coleção" o índice é criado, mas não serve.
+
+Se preferir, dá para pular o índice agora: quando a consulta falhar, o Logcat
+traz um link que cria exatamente este índice com um clique.
 
 ### As Cloud Functions são opcionais no começo
 
@@ -137,13 +193,22 @@ O APK é compilado pelo GitHub Actions. Ele precisa do `google-services.json`, e
 esse arquivo **não vai para o repositório** (o `.gitignore` cobre). Entra como
 segredo:
 
-1. `github.com/HENRIQUEPAM/primeiro` → **Settings** (do repositório, não da sua
-   conta) → **Secrets and variables** → **Actions**
-2. **New repository secret**
-3. Nome: `GOOGLE_SERVICES_JSON` — exatamente assim, maiúsculas e sublinhados
-4. Valor: **o conteúdo inteiro** do arquivo baixado na Etapa 1. Abra num editor
-   de texto, selecione tudo, cole. Não é o caminho do arquivo, é o texto dele.
-5. **Add secret**
+**Abra direto:**
+https://github.com/HENRIQUEPAM/primeiro/settings/secrets/actions/new
+
+Esse link já abre o formulário de segredo novo — não precisa achar
+Settings → Secrets and variables → Actions. São só dois campos:
+
+| Campo | O que pôr |
+| --- | --- |
+| **Name** | `GOOGLE_SERVICES_JSON` — exatamente assim, maiúsculas e sublinhados |
+| **Secret** | **O conteúdo inteiro** do `google-services.json`. Abra o arquivo num editor de texto, `Ctrl+A`, `Ctrl+C`, cole aqui. É o texto do arquivo, não o caminho dele. |
+
+Depois, **Add secret**.
+
+Se a página abrir em branco ou pedir login de outra conta, é porque o botão
+Settings só aparece para quem é dono do repositório — confira em qual conta do
+GitHub você está.
 
 O workflow já sabe o que fazer: com o segredo presente, ele escreve o arquivo
 antes de compilar; sem o segredo, usa um `google-services.json` de exemplo, que
