@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "674792875819",
+    "project_id": "porta-retrato-1fb3c",
+    "storage_bucket": "porta-retrato-1fb3c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:674792875819:android:4055cc115cb1710976876e",
+        "android_client_info": {
+          "package_name": "com.portaretrato.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "674792875819-n6ramqaflgbm0i9u0fkv95sd955dteor.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDk8mFPQx_SMCMvvnNAXsgzaUBiGcjwTLQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "674792875819-n6ramqaflgbm0i9u0fkv95sd955dteor.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:674792875819:android:c8cb48c7c54d52ca76876e",
+        "android_client_info": {
+          "package_name": "com.portaretrato.chamadas"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "674792875819-n6ramqaflgbm0i9u0fkv95sd955dteor.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDk8mFPQx_SMCMvvnNAXsgzaUBiGcjwTLQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "674792875819-n6ramqaflgbm0i9u0fkv95sd955dteor.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

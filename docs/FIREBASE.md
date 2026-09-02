@@ -3,9 +3,11 @@
 Passo a passo para sair de "os botões de WhatsApp e telefone funcionam, o do app
 não" para "a família liga e o porta-retrato toca".
 
-São **cinco etapas**. As quatro primeiras são de graça e levam uns 20 minutos.
-A de TURN é a única que custa dinheiro, e é a que decide se a chamada funciona
-fora do Wi-Fi de casa.
+**Sobram duas coisas para você fazer: as Etapas 2 e 3.** As Etapas 1 e 5 já
+estão prontas, e a 4 (TURN) só importa quando você for testar com um aparelho
+fora de casa.
+
+As duas que faltam são de graça e levam uns 10 minutos, tudo pelo navegador.
 
 ## Atalhos: links diretos
 
@@ -20,11 +22,11 @@ tela certa, sem navegar:
 | 3. Criar o Firestore | https://console.firebase.google.com/project/porta-retrato-1fb3c/firestore |
 | 3. Colar as regras | https://console.firebase.google.com/project/porta-retrato-1fb3c/firestore/rules |
 | 3. Criar o índice | https://console.firebase.google.com/project/porta-retrato-1fb3c/firestore/indexes |
-| 5. Cadastrar o segredo | https://github.com/HENRIQUEPAM/primeiro/settings/secrets/actions/new |
+| 5. Cadastrar o segredo | *não é mais necessário — ver Etapa 5* |
 
-> **A Etapa 1 já está feita.** O `google-services.json` do projeto mostra os dois
-> apps registrados — `com.portaretrato.app` (produção) e
-> `com.portaretrato.chamadas` (este). Não precisa refazer.
+> **As Etapas 1 e 5 já estão feitas.** O app `com.portaretrato.chamadas` está
+> registrado no projeto, e o `google-services.json` real está versionado em
+> `app/google-services.json`. **Sobram as Etapas 2 e 3.**
 
 > **Você não precisa da chave Admin SDK para nada disto.** Aquele arquivo
 > `...firebase-adminsdk-....json` serve para um servidor seu falar com o
@@ -187,32 +189,45 @@ silêncio, que é o pior modo de falha possível.
 
 ---
 
-## Etapa 5 — Fazer o APK sair ligado ao Firebase
+## Etapa 5 — Fazer o APK sair ligado ao Firebase ✅ FEITA
 
-O APK é compilado pelo GitHub Actions. Ele precisa do `google-services.json`, e
-esse arquivo **não vai para o repositório** (o `.gitignore` cobre). Entra como
-segredo:
+O `google-services.json` real está versionado em `app/google-services.json`, e o
+build já o usa. **Nada a fazer.**
 
-**Abra direto:**
-https://github.com/HENRIQUEPAM/primeiro/settings/secrets/actions/new
+**Por que ele pode ficar no repositório:** esse arquivo não é segredo. Ele vai
+dentro de todo APK, e qualquer pessoa que baixe o aplicativo consegue abrir e
+ler o conteúdo. A Google documenta isso explicitamente. A segurança do projeto
+vem das regras do Firestore (Etapa 3) e do login (Etapa 2) — é por isso que
+aquelas duas etapas são as que realmente importam.
 
-Esse link já abre o formulário de segredo novo — não precisa achar
-Settings → Secrets and variables → Actions. São só dois campos:
+O que **não** pode ir para o repositório é a chave da conta de serviço
+(`...firebase-adminsdk-....json`). Essa sim ignora todas as regras. Ela não está
+aqui e não é usada por nada.
 
-| Campo | O que pôr |
-| --- | --- |
-| **Name** | `GOOGLE_SERVICES_JSON` — exatamente assim, maiúsculas e sublinhados |
-| **Secret** | **O conteúdo inteiro** do `google-services.json`. Abra o arquivo num editor de texto, `Ctrl+A`, `Ctrl+C`, cole aqui. É o texto do arquivo, não o caminho dele. |
+### Ordem de prioridade no build
 
-Depois, **Add secret**.
+O workflow resolve nesta ordem:
 
-Se a página abrir em branco ou pedir login de outra conta, é porque o botão
-Settings só aparece para quem é dono do repositório — confira em qual conta do
-GitHub você está.
+1. **Segredo `GOOGLE_SERVICES_JSON`**, se existir — serve para apontar o build
+   para outro projeto Firebase sem mexer no repositório. Cadastre em
+   https://github.com/HENRIQUEPAM/primeiro/settings/secrets/actions/new
+2. **`app/google-services.json` versionado** — o caso normal hoje.
+3. **Placeholder** — só para um fork sem Firebase nenhum compilar.
 
-O workflow já sabe o que fazer: com o segredo presente, ele escreve o arquivo
-antes de compilar; sem o segredo, usa um `google-services.json` de exemplo, que
-compila e instala mas nunca autentica.
+Em seguida o workflow confere que o arquivo contém `com.portaretrato.chamadas` e
+**falha o build com mensagem clara** se não contiver. Sem essa checagem o
+sintoma seria o app compilar normalmente e falhar em silêncio no login, que é
+caro de diagnosticar.
+
+### Uma proteção opcional, para depois
+
+A chave de API dentro desse arquivo pode ser restringida para só funcionar a
+partir deste aplicativo. Não é urgente e não muda nada do que está acima, mas
+fecha a porta para alguém usar a chave em outro lugar:
+https://console.cloud.google.com/apis/credentials?project=porta-retrato-1fb3c
+→ clique na chave → **Restrições de aplicativo** → **Apps Android** → adicione o
+pacote `com.portaretrato.chamadas` com a impressão digital SHA-1 do certificado
+de assinatura.
 
 Depois de cadastrar, dispare um build novo (qualquer commit serve, ou
 **Actions** → **Build APK** → **Run workflow**) e reinstale o APK. O aviso

@@ -30,11 +30,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       # O plugin google-services falha o build sem este arquivo.
-      # Se você cadastrar o segredo GOOGLE_SERVICES_JSON no repositório
-      # (Settings > Secrets and variables > Actions), o APK sai conectado ao seu
-      # Firebase de verdade. Sem o segredo, geramos um arquivo estruturalmente
-      # válido só para o build passar: o APK instala e abre, mas não autentica
-      # nem sinaliza — serve para conferir telas, permissões e layout.
+      #
+      # Ordem de prioridade:
+      #  1. segredo GOOGLE_SERVICES_JSON, se cadastrado — permite apontar para
+      #     outro projeto Firebase sem mexer no repositório;
+      #  2. app/google-services.json versionado — é o caso normal hoje. Este
+      #     arquivo NÃO é segredo: ele vai dentro de todo APK e qualquer um
+      #     consegue extrair. A segurança vem das regras do Firestore;
+      #  3. placeholder — só para o build passar num fork sem Firebase nenhum.
+      #     O APK instala e abre, mas não autentica nem sinaliza.
       - name: Preparar google-services.json
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -42,10 +46,25 @@ jobs:
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
             echo "::notice::Usando google-services.json do segredo do repositório."
+          elif [ -s app/google-services.json ]; then
+            echo "::notice::Usando o app/google-services.json versionado."
           else
             cp .github/google-services.placeholder.json app/google-services.json
-            echo "::warning::Sem o segredo GOOGLE_SERVICES_JSON. APK gerado com Firebase de mentira: instala e abre, mas não faz chamada."
+            echo "::warning::Sem google-services.json real. APK gerado com Firebase de mentira: instala e abre, mas não faz chamada."
           fi
+
+          # Falha cedo e com mensagem clara se o pacote não bater — o sintoma
+          # sem esta checagem é o app compilar e falhar em silêncio no login.
+          python3 - <<'EOF'
+          import json, sys
+          d = json.load(open("app/google-services.json"))
+          alvo = "com.portaretrato.chamadas"
+          pkgs = [c["client_info"]["android_client_info"]["package_name"] for c in d["client"]]
+          if alvo not in pkgs:
+              print(f"::error::google-services.json nao contem {alvo}. Tem: {pkgs}")
+              sys.exit(1)
+          print(f"::notice::projeto {d['project_info']['project_id']}, pacote {alvo} presente.")
+          EOF
 
       - name: Build debug
         run: ./gradlew assembleDebug --stacktrace

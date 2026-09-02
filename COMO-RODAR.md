@@ -1,12 +1,20 @@
 # Como compilar e testar
 
-Projeto Android completo de chamada de vídeo entre dois aparelhos, com
-atendimento automático para contatos de confiança.
+Porta-retrato digital com reconhecimento facial, chamada de vídeo entre dois
+aparelhos e chamada pelo WhatsApp.
 
-**Não incluo o APK.** O SDK do Android não é acessível no ambiente onde este
-código foi escrito (`dl.google.com` bloqueado pelo proxy, HTTP 403), então não
-houve como rodar `aapt2`, `d8` nem `apksigner`. O projeto está completo e
-validado estaticamente; o build roda na sua máquina.
+**Você não precisa compilar nada.** O APK sai pronto do GitHub Actions a cada
+push e é publicado numa Release pública, que baixa direto no navegador do
+celular:
+
+**https://github.com/HENRIQUEPAM/primeiro/releases/download/apk-teste/porta-retrato.apk**
+
+O endereço não muda entre versões — sempre aponta para a mais recente.
+
+As instruções abaixo servem para quem quiser compilar na própria máquina. O SDK
+do Android não é acessível no ambiente onde este código foi escrito
+(`dl.google.com` bloqueado pelo proxy, HTTP 403), então o build local nunca foi
+exercitado daqui — quem valida é o CI.
 
 ---
 
@@ -41,8 +49,10 @@ use o mesmo.
    > este app instala lado a lado com o Porta Retrato no aparelho de teste, sem
    > substituí-lo.
 
-2. Baixe o `google-services.json` e coloque em **`app/google-services.json`**.
-   (Está no `.gitignore` — não versione.)
+2. O `google-services.json` do projeto `porta-retrato-1fb3c` **já está
+   versionado** em `app/google-services.json` — nada a fazer. Ele não é segredo:
+   vai dentro de todo APK e qualquer um extrai. Para apontar para OUTRO projeto
+   Firebase, cadastre o segredo `GOOGLE_SERVICES_JSON`, que tem prioridade.
 
 3. **Authentication → Sign-in method → ative "Anônimo".** Sem isso o app não
    consegue entrar e a tela mostra "Falha ao entrar".
@@ -82,16 +92,17 @@ O APK sai em `app/build/outputs/apk/debug/app-debug.apk`.
    toque em **Ligar**.
 5. O aparelho A toca. Toque em **Atender**.
 
-### Testar o atendimento automático
+### Atendimento automático: desligado
 
-No aparelho A (o "porta-retrato"):
+O recurso existe no código, testado, mas está **desligado por decisão de
+produto** (`AutoAnswerPolicy.FEATURE_ENABLED = false`). Toda chamada toca e
+espera alguém atender, como a Seção 7.4 da especificação v3.1 determina.
 
-1. **Adicionar contato** → nome, o código do aparelho B, e marque
-   **Atender automaticamente**.
-2. Ligue de B para A.
-3. A tela de A acende sozinha, mostra o nome, faz a contagem regressiva de 3 s
-   e atende — sem ninguém tocar em nada. O botão **Recusar** fica disponível
-   durante a contagem.
+Não adianta procurar a opção na tela: ela não existe, e um contato marcado como
+confiável em disco continua sem efeito. A suíte varre 288 combinações
+confirmando isso. Os três passos para religar estão no KDoc de
+`FEATURE_ENABLED`; o registro da decisão está em
+[`docs/ALINHAMENTO-SPEC-v3.1.md`](docs/ALINHAMENTO-SPEC-v3.1.md).
 
 ## 5. Chamada com o app fechado (opcional)
 
@@ -165,13 +176,10 @@ Roda as seis suítes e as 7 verificações estáticas num comando só.
 
 O que **não** foi verificado e você deve esperar encontrar:
 
-- **Compilação real contra as bibliotecas.** Sem SDK, os 1063 erros do
-  `kotlinc` são todos `unresolved reference` a `android.*`, `org.webrtc.*`,
-  `com.google.*` e `kotlinx.*` — esperados. Zero erros de sintaxe, mas isso
-  **não garante** que as assinaturas do WebRTC batem com a versão 1.3.8.
-  `WebRtcEngine.kt` é o arquivo com maior chance de precisar de ajuste:
-  `DefaultVideoEncoderFactory`, `addTrack` e `onTrack` mudaram entre versões.
-- **Comportamento em aparelho.** Nada rodou em Android.
+- **Comportamento em aparelho.** Nada rodou em Android. O CI compila contra as
+  bibliotecas de verdade e o APK está assinado e instalável, mas compilar não é
+  funcionar. `WebRtcEngine.kt` é o arquivo com maior chance de surpresa em
+  execução.
 - **Reconhecimento com fotos de verdade.** Os 76 testes do índice de pessoas
   usam embeddings sintéticos com similaridade controlada — eles verificam a
   *lógica* de decisão, não a precisão do modelo. Os limiares
