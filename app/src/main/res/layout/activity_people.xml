@@ -1,195 +1,222 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Tela inteira dentro de um único ScrollView: o cartão de revisão cresceu
-  (foto maior, campo de nome, botão de contato) e pode facilmente passar da
-  altura da tela num aparelho comum. Duas seções competindo por
-  layout_weight (revisão + lista de pessoas) as espremeria; um scroll só
-  resolve sem precisar arbitrar quem ganha espaço.
+  Conteúdo rolável (título, cartão de revisão sem os botões finais, lista de
+  pessoas) num ScrollView com peso, mais uma barra de ações fixa embaixo
+  (Salvar/Pular/Descartar) fora do scroll: o cartão de revisão cresceu (foto
+  maior, campo de nome, botão de contato) e num aparelho pequeno o botão
+  Salvar podia ficar fora da tela, exigindo rolar para saber que ele existe.
+  Fixando a barra de ações, ela some/aparece junto com o cartão de revisão
+  (ver PeopleActivity.showNextFace/showEmptyState) mas nunca fica escondida
+  por falta de espaço.
 -->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:orientation="vertical">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/people_title"
-            android:textSize="26sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/scan_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:background="@color/navy_050"
-            android:padding="12dp"
-            android:textSize="15sp"
-            android:visibility="gone" />
-
-        <!-- Cartão de revisão: um rosto por vez. Uma grade de miniaturas
-             obrigaria o usuário a escolher onde tocar antes de saber o que
-             está sendo perguntado. -->
         <LinearLayout
-            android:id="@+id/review_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@color/navy_050"
-            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="16dp"
-            android:visibility="gone">
-
-            <ImageView
-                android:id="@+id/face_image"
-                android:layout_width="match_parent"
-                android:layout_height="260dp"
-                android:contentDescription="@string/face_to_identify"
-                android:scaleType="centerCrop" />
+            android:padding="20dp">
 
             <TextView
-                android:id="@+id/review_remaining"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/people_title"
+                android:textSize="26sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/scan_status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:alpha="0.6"
-                android:gravity="center"
-                android:textSize="13sp" />
+                android:background="@color/navy_050"
+                android:padding="12dp"
+                android:textSize="15sp"
+                android:visibility="gone" />
 
-            <!-- Palpite do app: fundo âmbar de propósito — é a mesma lógica do
-                 verde/vermelho da chamada, uma cor de atenção que não pode se
-                 misturar ao azul do resto do app. Some quando o rosto é
-                 desconhecido: aí não há palpite nenhum para conferir. -->
+            <!-- Cartão de revisão: um rosto por vez. Uma grade de miniaturas
+                 obrigaria o usuário a escolher onde tocar antes de saber o que
+                 está sendo perguntado. Os botões de ação ficam fora daqui,
+                 na barra fixa abaixo do ScrollView. -->
+            <LinearLayout
+                android:id="@+id/review_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@color/navy_050"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/face_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="260dp"
+                    android:contentDescription="@string/face_to_identify"
+                    android:scaleType="centerCrop" />
+
+                <TextView
+                    android:id="@+id/review_remaining"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:alpha="0.6"
+                    android:gravity="center"
+                    android:textSize="13sp" />
+
+                <!-- Palpite do app: fundo âmbar de propósito — é a mesma lógica do
+                     verde/vermelho da chamada, uma cor de atenção que não pode se
+                     misturar ao azul do resto do app. Some quando o rosto é
+                     desconhecido: aí não há palpite nenhum para conferir. -->
+                <TextView
+                    android:id="@+id/suggestion_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/amber_banner_bg"
+                    android:padding="12dp"
+                    android:textColor="@color/amber_banner_text"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/name_input_layout"
+                    style="@style/Widget.Material3.TextInputLayout.FilledBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:hint="@string/person_name_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/name_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPersonName"
+                        android:textSize="20sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Para quando o algoritmo erra e o humano acerta: o rosto pode
+                     ser claramente uma pessoa já cadastrada mesmo que a
+                     semelhança calculada não tenha alcançado uma sugestão. -->
+                <Button
+                    android:id="@+id/pick_existing_person_button"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/pick_existing_person_button"
+                    android:textSize="15sp"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/pick_contact_button"
+                    style="@style/ContactActionButton"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/pick_phone_contact" />
+
+                <!-- Verde: mesma cor de "atender" da chamada — aqui significa
+                     "este telefone já está pronto para ligar". -->
+                <TextView
+                    android:id="@+id/linked_phone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/answer_green"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
             <TextView
-                android:id="@+id/suggestion_hint"
+                android:id="@+id/people_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/people_known"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/empty_state"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:background="@color/amber_banner_bg"
-                android:padding="12dp"
-                android:textColor="@color/amber_banner_text"
+                android:text="@string/no_people_yet"
                 android:textSize="16sp"
-                android:textStyle="bold"
                 android:visibility="gone" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/name_input_layout"
-                style="@style/Widget.Material3.TextInputLayout.FilledBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:hint="@string/person_name_hint">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/name_input"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPersonName"
-                    android:textSize="20sp" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Para quando o algoritmo erra e o humano acerta: o rosto pode
-                 ser claramente uma pessoa já cadastrada mesmo que a
-                 semelhança calculada não tenha alcançado uma sugestão. -->
-            <Button
-                android:id="@+id/pick_existing_person_button"
-                style="?attr/borderlessButtonStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/pick_existing_person_button"
-                android:textSize="15sp"
-                android:visibility="gone" />
-
-            <Button
-                android:id="@+id/pick_contact_button"
-                style="@style/ContactActionButton"
-                android:layout_marginTop="4dp"
-                android:text="@string/pick_phone_contact" />
-
-            <!-- Verde: mesma cor de "atender" da chamada — aqui significa
-                 "este telefone já está pronto para ligar". -->
-            <TextView
-                android:id="@+id/linked_phone"
+            <!-- wrap_content, não weight: a lista de pessoas de uma família é
+                 curta, e o ScrollView de fora já cobre o caso de não caber. -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/people_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:textColor="@color/answer_green"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
+                android:nestedScrollingEnabled="false" />
 
             <Button
-                android:id="@+id/save_button"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:layout_marginTop="16dp"
-                android:backgroundTint="@color/amber_button"
-                android:text="@string/save_and_link"
-                android:textColor="@color/on_amber_button"
-                android:textSize="18sp" />
-
-            <Button
-                android:id="@+id/skip_for_now_button"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="8dp"
-                android:backgroundTint="@color/navy_600"
-                android:text="@string/skip_for_now"
-                android:textSize="16sp" />
-
-            <Button
-                android:id="@+id/discard_button"
-                style="?attr/borderlessButtonStyle"
+                android:id="@+id/rescan_button"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/discard_face"
-                android:textColor="@color/decline_red"
+                android:text="@string/scan_now"
                 android:textSize="15sp" />
+
         </LinearLayout>
+    </ScrollView>
 
-        <TextView
-            android:id="@+id/people_header"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/people_known"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/empty_state"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/no_people_yet"
-            android:textSize="16sp"
-            android:visibility="gone" />
-
-        <!-- wrap_content, não weight: a lista de pessoas de uma família é
-             curta, e o ScrollView de fora já cobre o caso de não caber. -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/people_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:nestedScrollingEnabled="false" />
+    <!-- Barra de ações do rosto em revisão: fixa fora do ScrollView, para
+         Salvar nunca ficar fora da tela sem o usuário saber que precisa
+         rolar. Visibilidade acompanha review_card (ver PeopleActivity). -->
+    <LinearLayout
+        android:id="@+id/review_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/navy_050"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="16dp"
+        android:visibility="gone">
 
         <Button
-            android:id="@+id/rescan_button"
-            style="?attr/borderlessButtonStyle"
+            android:id="@+id/save_button"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:backgroundTint="@color/amber_button"
+            android:text="@string/save_and_link"
+            android:textColor="@color/on_amber_button"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/skip_for_now_button"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="@color/navy_600"
+            android:text="@string/skip_for_now"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/discard_button"
+            style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/scan_now"
+            android:layout_marginTop="4dp"
+            android:text="@string/discard_face"
+            android:textColor="@color/decline_red"
             android:textSize="15sp" />
-
     </LinearLayout>
-</ScrollView>
+
+</LinearLayout>

@@ -7,12 +7,12 @@ import android.view.View
 import android.view.WindowManager
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.portaretrato.app.R
 import com.portaretrato.app.call.AuthState
 import com.portaretrato.app.call.CallDispatcher
@@ -245,7 +245,7 @@ class SlideshowActivity : AppCompatActivity() {
                 // Foto com mais de uma pessoa reconhecida (um casal, os dois
                 // filhos): pergunta para quem antes de mostrar as opções.
                 val names = photoCallable.map { it.name }.toTypedArray()
-                AlertDialog.Builder(this)
+                MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.call_people_in_photo)
                     .setItems(names) { _, which -> showCallOptions(photoCallable[which]) }
                     .show()
@@ -273,7 +273,7 @@ class SlideshowActivity : AppCompatActivity() {
             if (option.available) option.label else "${option.label} — ${option.explanation}"
         }.toTypedArray()
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(person.name)
             .setItems(labels) { _, which ->
                 val option = options[which]
@@ -358,7 +358,7 @@ class SlideshowActivity : AppCompatActivity() {
             getString(R.string.slideshow_interval),
             getString(R.string.privacy_title),
         )
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(
                 resources.getQuantityString(R.plurals.photo_count, library.count(), library.count()),
             )
@@ -385,7 +385,7 @@ class SlideshowActivity : AppCompatActivity() {
         val intervals = longArrayOf(5_000, 12_000, 30_000, 60_000, 300_000)
         val labels = intervals.map { getString(R.string.seconds_format, it / 1000) }.toTypedArray()
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.slideshow_interval)
             .setSingleChoiceItems(labels, intervals.indexOf(current.intervalMs)) { dialog, which ->
                 val updated = current.copy(intervalMs = intervals[which])

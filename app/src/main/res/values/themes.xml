@@ -61,14 +61,6 @@
         <item name="android:paddingBottom">8dp</item>
     </style>
 
-    <!-- Botao dos controles do slideshow: alto e largo, sobre fundo escuro. -->
-    <style name="SlideshowActionButton" parent="Widget.Material3.Button">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">64dp</item>
-        <item name="android:layout_marginTop">8dp</item>
-        <item name="android:textSize">18sp</item>
-    </style>
-
     <!-- Único botão do slideshow: largo o bastante para o dedo, mas não
          ocupa a tela inteira como os botões do menu que ele abre. -->
     <style name="SlideshowMenuButton" parent="Widget.Material3.Button">

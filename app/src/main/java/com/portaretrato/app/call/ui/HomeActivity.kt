@@ -4,12 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.R
 import com.portaretrato.app.call.AuthState
@@ -153,7 +153,7 @@ class HomeActivity : AppCompatActivity() {
             codeField.setText(it.uid)
         }
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.add_contact)
             .setView(view)
             .setPositiveButton(R.string.save) { _, _ ->
@@ -182,7 +182,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun showContactMenu(contact: TrustedContact) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(contact.name)
             .setItems(
                 arrayOf(getString(R.string.edit_contact), getString(R.string.remove_contact)),

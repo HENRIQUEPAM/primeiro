@@ -9,10 +9,10 @@ import android.view.View
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.R
 import com.portaretrato.app.call.PhoneNumbers
@@ -182,10 +182,12 @@ class PeopleActivity : AppCompatActivity() {
         reviewing = next
         if (next == null) {
             binding.reviewCard.visibility = View.GONE
+            binding.reviewActions.visibility = View.GONE
             return
         }
 
         binding.reviewCard.visibility = View.VISIBLE
+        binding.reviewActions.visibility = View.VISIBLE
         binding.reviewRemaining.text =
             resources.getQuantityString(R.plurals.faces_remaining, db.pendingCount, db.pendingCount)
 
@@ -275,7 +277,7 @@ class PeopleActivity : AppCompatActivity() {
         val people = db.people
         if (people.isEmpty()) return
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.pick_existing_person_title)
             .setItems(people.map { it.name }.toTypedArray()) { _, which ->
                 applyPersonResult(db.assignToExistingPerson(face.id, people[which].id))
@@ -406,7 +408,7 @@ class PeopleActivity : AppCompatActivity() {
     // ---------------------------------------------------------------- pessoas
 
     private fun showPersonMenu(person: Person) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(person.name)
             .setItems(
                 arrayOf(getString(R.string.rename_person), getString(R.string.remove_person)),
@@ -425,7 +427,7 @@ class PeopleActivity : AppCompatActivity() {
             setSingleLine()
             textSize = 20f
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.rename_person)
             .setView(input)
             .setPositiveButton(R.string.save) { _, _ ->
@@ -438,7 +440,7 @@ class PeopleActivity : AppCompatActivity() {
     }
 
     private fun confirmRemoval(person: Person) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.remove_person)
             .setMessage(getString(R.string.remove_person_warning, person.name))
             .setPositiveButton(R.string.remove_person) { _, _ ->

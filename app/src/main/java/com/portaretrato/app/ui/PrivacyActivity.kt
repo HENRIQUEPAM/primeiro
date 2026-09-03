@@ -4,11 +4,11 @@ import android.os.Bundle
 import android.text.format.DateFormat
 import android.widget.ArrayAdapter
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.R
 import com.portaretrato.app.databinding.ActivityPrivacyBinding
@@ -88,7 +88,7 @@ class PrivacyActivity : AppCompatActivity() {
      * apagar por medo de perder as fotos da família.
      */
     private fun confirmForgetFaces() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.forget_faces)
             .setMessage(R.string.forget_faces_warning)
             .setPositiveButton(R.string.forget_faces) { _, _ ->
