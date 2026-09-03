@@ -27,8 +27,8 @@ data class ContactCard(
  *
  * - **Nome grande (28sp) e o cartao inteiro clicavel.** Um toque em qualquer
  *   lugar do cartao usa a melhor forma de chamada disponivel. Ninguem deveria
- *   precisar escolher entre quatro botoes para falar com a filha.
- * - **Os quatro botoes continuam visiveis** para quem quiser escolher, com 56dp
+ *   precisar escolher entre tres botoes para falar com a filha.
+ * - **Os tres botoes continuam visiveis** para quem quiser escolher, com 56dp
  *   de altura e rotulo em texto.
  * - **Botao indisponivel fica desabilitado com o motivo escrito**, nunca
  *   escondido. Esconder faria o usuario lembrar que "ontem tinha um botao aqui".
@@ -65,7 +65,6 @@ class ContactAdapter(
             }
 
             wire(binding.appVideoButton, card, CallMethod.APP_VIDEO)
-            wire(binding.whatsappVideoButton, card, CallMethod.WHATSAPP_VIDEO)
             wire(binding.whatsappChatButton, card, CallMethod.WHATSAPP_CHAT)
             wire(binding.phoneButton, card, CallMethod.PHONE_DIAL)
         }

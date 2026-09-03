@@ -80,13 +80,29 @@
             android:textSize="20sp" />
     </LinearLayout>
 
-    <!-- Ligar para quem está na foto atual. Independente dos controles: fica
-         visível sempre que a foto na tela tiver alguém reconhecido com
-         telefone vinculado, sem precisar tocar a tela primeiro. Ícone com
-         rótulo de texto embaixo — ícone sozinho é ambíguo para usuário idoso,
-         "Ligar" escrito não é (mesma regra de activity_call.xml). -->
+    <!-- Ligar para quem está na foto atual — dois tamanhos do mesmo botão,
+         nunca os dois visíveis juntos. Sozinho na tela (estado de repouso,
+         a maior parte do tempo), fica pequeno e discreto, para não competir
+         com a foto. Ao tocar a tela — junto com o nome e o menu — cresce
+         para o tamanho com rótulo de texto: "ícone sozinho é ambíguo para
+         usuário idoso, 'Ligar' escrito não é" (mesma regra de
+         activity_call.xml), mas só precisa disso quando já se está
+         interagindo com a tela. -->
+    <ImageButton
+        android:id="@+id/photo_call_button_compact"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/bg_call_button"
+        android:contentDescription="@string/call_people_in_photo"
+        android:elevation="6dp"
+        android:padding="10dp"
+        android:src="@drawable/ic_call"
+        android:visibility="gone" />
+
     <LinearLayout
-        android:id="@+id/photo_call_button"
+        android:id="@+id/photo_call_button_expanded"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"

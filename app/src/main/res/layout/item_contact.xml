@@ -35,13 +35,9 @@
             android:textSize="16sp" />
 
         <Button
-            android:id="@+id/whatsapp_video_button"
+            android:id="@+id/app_video_button"
             style="@style/ContactActionButton"
             android:layout_marginTop="16dp" />
-
-        <Button
-            android:id="@+id/app_video_button"
-            style="@style/ContactActionButton" />
 
         <Button
             android:id="@+id/whatsapp_chat_button"

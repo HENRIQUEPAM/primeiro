@@ -13,7 +13,7 @@ import com.portaretrato.app.call.ui.CallActivity
  * Extraído de `HomeActivity`, que era o único lugar que sabia fazer isto, no
  * dia em que [com.portaretrato.app.ui.SlideshowActivity] passou a precisar do
  * mesmo caminho — o botão de ligar direto de uma foto usa exatamente as
- * mesmas quatro formas de chamada, com o mesmo motivo escrito quando alguma
+ * mesmas três formas de chamada, com o mesmo motivo escrito quando alguma
  * não está disponível. Duas cópias da mesma lógica de despacho divergiriam
  * cedo ou tarde; uma só, reaproveitada, não.
  *
@@ -30,11 +30,6 @@ object CallDispatcher {
     ) {
         val phone = contact.phone.orEmpty()
         when (method) {
-            CallMethod.WHATSAPP_VIDEO ->
-                if (!WhatsAppFallback.startVideoCall(activity, phone)) {
-                    toast(activity, R.string.whatsapp_missing)
-                }
-
             CallMethod.WHATSAPP_CHAT ->
                 if (!WhatsAppFallback.openChat(activity, phone)) {
                     toast(activity, R.string.whatsapp_missing)

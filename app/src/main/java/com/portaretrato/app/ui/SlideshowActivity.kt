@@ -77,6 +77,9 @@ class SlideshowActivity : AppCompatActivity() {
     /** Quem, na foto atual, tem telefone vinculado — e portanto pode ser chamado. */
     private var photoCallable: List<Person> = emptyList()
 
+    /** Texto da legenda de nomes da foto atual, ou `null` se ninguém foi reconhecido. */
+    private var currentNamesText: String? = null
+
     /** Seletor do sistema: não exige permissão de armazenamento. */
     private val pickPhotos = registerForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS_PER_PICK),
@@ -113,7 +116,8 @@ class SlideshowActivity : AppCompatActivity() {
         binding.root.setOnClickListener { toggleControls() }
         binding.menuButton.setOnClickListener { showMenu() }
         binding.emptyAddButton.setOnClickListener { pickPhotos() }
-        binding.photoCallButton.setOnClickListener { onPhotoCallTapped() }
+        binding.photoCallButtonCompact.setOnClickListener { onPhotoCallTapped() }
+        binding.photoCallButtonExpanded.setOnClickListener { onPhotoCallTapped() }
     }
 
     override fun onStart() {
@@ -153,9 +157,8 @@ class SlideshowActivity : AppCompatActivity() {
         binding.emptyState.visibility = View.VISIBLE
         binding.imageA.setImageDrawable(null)
         binding.imageB.setImageDrawable(null)
-        binding.photoNames.visibility = View.GONE
+        currentNamesText = null
         photoCallable = emptyList()
-        binding.photoCallButton.visibility = View.GONE
         showControls()
     }
 
@@ -192,49 +195,49 @@ class SlideshowActivity : AppCompatActivity() {
             } ?: return@launch
 
             crossFadeTo(bitmap)
-            showNames(id)
-            showCallButton(id)
+            updateNames(id)
+            updateCallable(id)
+            applyControlsVisibility()
         }
     }
 
     /**
-     * Mostra quem foi reconhecido na foto.
+     * Calcula a legenda de quem foi reconhecido na foto — é o que transforma o
+     * reconhecimento facial em algo visível para quem apenas olha o
+     * porta-retrato. Só guarda o texto; [applyControlsVisibility] decide
+     * quando mostrar (junto com o menu, ao tocar a tela — ver seu KDoc).
      *
-     * É o que transforma o reconhecimento facial em algo visível para quem
-     * apenas olha o porta-retrato: a foto aparece e o nome aparece junto. Sem
-     * isto, todo o pipeline seria trabalho invisível.
-     *
-     * Some quando ninguém foi reconhecido — uma faixa vazia sobre a foto só
+     * `null` quando ninguém foi reconhecido — uma faixa vazia sobre a foto só
      * atrapalharia, e "Desconhecido" seria pior ainda.
      */
-    private fun showNames(photoId: String) {
+    private fun updateNames(photoId: String) {
         val names = scanner.database.namesIn(photoId)
-        if (names.isEmpty()) {
-            binding.photoNames.visibility = View.GONE
-            return
+        currentNamesText = if (names.isEmpty()) {
+            null
+        } else {
+            when (names.size) {
+                1 -> names[0]
+                // "Ana, João e Maria" — a lista com "e" no fim lê melhor em voz
+                // alta do que uma sequência de vírgulas, e alguém sempre lê em
+                // voz alta.
+                else -> names.dropLast(1).joinToString(", ") + " e " + names.last()
+            }
         }
-        binding.photoNames.text = when (names.size) {
-            1 -> names[0]
-            // "Ana, João e Maria" — a lista com "e" no fim lê melhor em voz alta
-            // do que uma sequência de vírgulas, e alguém sempre lê em voz alta.
-            else -> names.dropLast(1).joinToString(", ") + " e " + names.last()
-        }
-        binding.photoNames.visibility = View.VISIBLE
     }
 
     // ------------------------------------------------------------- ligação
 
     /**
-     * Mostra (ou esconde) o botão de ligar para quem está na foto atual.
+     * Quem, na foto atual, pode ser chamado — só guarda a lista;
+     * [applyControlsVisibility] decide o tamanho do botão.
      *
-     * Só aparece quando alguém reconhecido nesta foto tem telefone vinculado
-     * — sem isso o botão apareceria sempre, para qualquer rosto conhecido, sem
-     * ter para onde ligar, que é o mesmo erro que o resto do app evita: um
-     * botão que não funciona é pior que um botão ausente.
+     * Só conta quem tem telefone vinculado — sem isso o botão apareceria
+     * sempre, para qualquer rosto conhecido, sem ter para onde ligar, que é o
+     * mesmo erro que o resto do app evita: um botão que não funciona é pior
+     * que um botão ausente.
      */
-    private fun showCallButton(photoId: String) {
+    private fun updateCallable(photoId: String) {
         photoCallable = scanner.database.peopleIn(photoId).filter { it.phone != null }
-        binding.photoCallButton.visibility = if (photoCallable.isEmpty()) View.GONE else View.VISIBLE
     }
 
     private fun onPhotoCallTapped() {
@@ -254,7 +257,7 @@ class SlideshowActivity : AppCompatActivity() {
     }
 
     /**
-     * As mesmas quatro opções de chamada da tela de contatos ([CallOptions]),
+     * As mesmas três opções de chamada da tela de contatos ([CallOptions]),
      * para a pessoa escolhida. Reaproveita o [CallDispatcher] que a tela de
      * contatos usa — ver o KDoc dele para o porquê.
      */
@@ -327,9 +330,7 @@ class SlideshowActivity : AppCompatActivity() {
 
     private fun showControls() {
         binding.menuButton.visibility = View.VISIBLE
-        // O botão ocupa a mesma borda inferior que a legenda: deixar as duas
-        // visíveis sobreporia o nome ao botão.
-        binding.photoNames.visibility = View.GONE
+        applyControlsVisibility()
         hideControlsJob?.cancel()
         hideControlsJob = lifecycleScope.launch {
             delay(CONTROLS_TIMEOUT_MS)
@@ -340,8 +341,43 @@ class SlideshowActivity : AppCompatActivity() {
     private fun hideControls() {
         hideControlsJob?.cancel()
         binding.menuButton.visibility = View.GONE
-        engine.current?.let { showNames(it) }
+        applyControlsVisibility()
         goImmersive()
+    }
+
+    /**
+     * Aplica, de uma vez, tudo que muda de tamanho ou aparece/some junto com
+     * o menu: a legenda de nomes e o botão de ligar.
+     *
+     * Antes, o nome ficava sempre visível e o botão de ligar sempre grande —
+     * os dois competindo com a foto o tempo todo, mesmo em repouso. Agora só
+     * aparecem (nome) ou crescem (botão, de ícone pequeno para ícone com
+     * "Ligar" escrito) junto com o toque na tela, como o menu — e encolhem
+     * de volta sozinhos depois de [CONTROLS_TIMEOUT_MS]. Continuam
+     * independentes um do outro: mesmo com o menu escondido, o ícone pequeno
+     * de ligar continua ali, discreto, sempre que há para quem ligar.
+     */
+    private fun applyControlsVisibility() {
+        val shown = binding.menuButton.visibility == View.VISIBLE
+
+        val names = currentNamesText
+        if (shown && names != null) {
+            binding.photoNames.text = names
+            binding.photoNames.visibility = View.VISIBLE
+        } else {
+            binding.photoNames.visibility = View.GONE
+        }
+
+        if (photoCallable.isEmpty()) {
+            binding.photoCallButtonCompact.visibility = View.GONE
+            binding.photoCallButtonExpanded.visibility = View.GONE
+        } else if (shown) {
+            binding.photoCallButtonCompact.visibility = View.GONE
+            binding.photoCallButtonExpanded.visibility = View.VISIBLE
+        } else {
+            binding.photoCallButtonCompact.visibility = View.VISIBLE
+            binding.photoCallButtonExpanded.visibility = View.GONE
+        }
     }
 
     /**

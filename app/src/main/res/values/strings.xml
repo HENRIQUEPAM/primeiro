@@ -115,8 +115,8 @@
     <string name="pick_existing_person_button">👥 Já é alguém cadastrado? Escolher da lista</string>
     <string name="pick_existing_person_title">Quem desta lista é esta pessoa?</string>
     <string name="linked_phone">Telefone vinculado: +%1$s</string>
-    <string name="save_and_link">Salvar e vincular</string>
-    <string name="skip_for_now">Pular por enquanto</string>
+    <string name="save_and_link">Salvar</string>
+    <string name="skip_for_now">Pular</string>
     <string name="discard_face">Não é ninguém (descartar este rosto)</string>
     <string name="name_required">Escreva um nome antes de salvar.</string>
     <string name="contact_without_phone">Este contato não tem telefone salvo.</string>

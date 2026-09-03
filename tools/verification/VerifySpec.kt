@@ -210,13 +210,12 @@ fun testCallOptions() {
         "=${opt(hoje, CallMethod.APP_VIDEO).explanation}",
     )
     // O ponto central: mesmo assim o usuario CONSEGUE falar com a pessoa.
-    check("WhatsApp video continua disponivel", opt(hoje, CallMethod.WHATSAPP_VIDEO).available)
-    check("WhatsApp chat continua disponivel", opt(hoje, CallMethod.WHATSAPP_CHAT).available)
+    check("WhatsApp continua disponivel", opt(hoje, CallMethod.WHATSAPP_CHAT).available)
     check("telefone continua disponivel", opt(hoje, CallMethod.PHONE_DIAL).available)
     check("ha ao menos uma forma de falar", CallOptions.hasAnyOption(hoje))
     check(
-        "o toque simples cai no WhatsApp video",
-        CallOptions.best(hoje)?.method == CallMethod.WHATSAPP_VIDEO,
+        "o toque simples cai no WhatsApp",
+        CallOptions.best(hoje)?.method == CallMethod.WHATSAPP_CHAT,
         "=${CallOptions.best(hoje)?.method}",
     )
 
@@ -229,15 +228,15 @@ fun testCallOptions() {
     )
     check(
         "WhatsApp NAO desaparece quando o app funciona",
-        opt(completo, CallMethod.WHATSAPP_VIDEO).available,
+        opt(completo, CallMethod.WHATSAPP_CHAT).available,
     )
 
     // Contato sem telefone: so resta o app.
     val semTelefone = options(phone = null)
-    check("sem telefone, WhatsApp fica indisponivel", !opt(semTelefone, CallMethod.WHATSAPP_VIDEO).available)
+    check("sem telefone, WhatsApp fica indisponivel", !opt(semTelefone, CallMethod.WHATSAPP_CHAT).available)
     check(
         "e explica que falta o telefone",
-        opt(semTelefone, CallMethod.WHATSAPP_VIDEO).unavailableReason == UnavailableReason.NO_PHONE_NUMBER,
+        opt(semTelefone, CallMethod.WHATSAPP_CHAT).unavailableReason == UnavailableReason.NO_PHONE_NUMBER,
     )
     check("telefone invalido conta como ausente", !opt(options(phone = "123"), CallMethod.PHONE_DIAL).available)
 

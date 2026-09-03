@@ -190,23 +190,36 @@
         android:paddingBottom="16dp"
         android:visibility="gone">
 
-        <Button
-            android:id="@+id/save_button"
+        <!-- Salvar e Pular lado a lado, mesma largura: as duas são a resposta
+             mais comum, não precisam da largura toda cada uma. Descartar
+             continua sozinho embaixo — é a opção rara, "esta pessoa não é
+             ninguém", que não deveria competir em destaque com as outras
+             duas. -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:backgroundTint="@color/amber_button"
-            android:text="@string/save_and_link"
-            android:textColor="@color/on_amber_button"
-            android:textSize="18sp" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/skip_for_now_button"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="8dp"
-            android:backgroundTint="@color/navy_600"
-            android:text="@string/skip_for_now"
-            android:textSize="16sp" />
+            <Button
+                android:id="@+id/save_button"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/amber_button"
+                android:text="@string/save_and_link"
+                android:textColor="@color/on_amber_button"
+                android:textSize="18sp" />
+
+            <Button
+                android:id="@+id/skip_for_now_button"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/navy_600"
+                android:text="@string/skip_for_now"
+                android:textSize="18sp" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/discard_button"

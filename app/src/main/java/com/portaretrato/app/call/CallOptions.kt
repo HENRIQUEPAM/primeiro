@@ -5,10 +5,16 @@ enum class CallMethod {
     /** Vídeo P2P dentro do app. Exige Firebase configurado, pareamento e TURN. */
     APP_VIDEO,
 
-    /** Videochamada pelo WhatsApp. Sai do app, mas não exige backend nenhum. */
-    WHATSAPP_VIDEO,
-
-    /** Conversa do WhatsApp. Funciona até sem o contato na agenda. */
+    /**
+     * Abre a conversa do WhatsApp. Funciona até sem o contato na agenda.
+     *
+     * A videochamada direta do WhatsApp (deep link para o mimetype de
+     * videochamada) foi removida como opção própria: na prática ela depende do
+     * contato estar salvo no aparelho E sincronizado pelo WhatsApp com aquele
+     * mimetype, o que raramente é o caso, e testar no aparelho real mostrou
+     * que ela simplesmente não abre. Duas entradas de WhatsApp no menu, uma
+     * das quais não funciona, é pior que uma só que sempre funciona.
+     */
     WHATSAPP_CHAT,
 
     /** Discador do telefone. Usa a operadora, não a internet. */
@@ -100,14 +106,8 @@ object CallOptions {
                 unavailableReason = appVideoReason,
             ),
             CallOption(
-                method = CallMethod.WHATSAPP_VIDEO,
-                label = "Vídeo no WhatsApp",
-                available = phoneReason == null,
-                unavailableReason = phoneReason,
-            ),
-            CallOption(
                 method = CallMethod.WHATSAPP_CHAT,
-                label = "Mensagem no WhatsApp",
+                label = "WhatsApp",
                 available = phoneReason == null,
                 unavailableReason = phoneReason,
             ),
@@ -123,9 +123,9 @@ object CallOptions {
     /**
      * Melhor opção disponível, para o toque simples no cartão.
      *
-     * O idoso não deveria precisar escolher entre quatro botões para falar com
+     * O idoso não deveria precisar escolher entre três botões para falar com
      * a filha: um toque no rosto dela usa o melhor caminho que funciona agora.
-     * Os quatro botões continuam existindo para quem quiser escolher.
+     * Os três botões continuam existindo para quem quiser escolher.
      */
     fun best(options: List<CallOption>): CallOption? = options.firstOrNull { it.available }
 
