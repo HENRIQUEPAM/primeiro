@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import android.widget.ImageView
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -24,6 +25,8 @@ import com.portaretrato.app.call.ui.HomeActivity
 import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.databinding.ActivitySlideshowBinding
 import com.portaretrato.app.people.Person
+import com.portaretrato.app.photo.PhotoFit
+import com.portaretrato.app.photo.PhotoFitMode
 import com.portaretrato.app.photo.PhotoLibrary
 import com.portaretrato.app.photo.SlideshowEngine
 import com.portaretrato.app.photo.SlideshowOrder
@@ -313,6 +316,7 @@ class SlideshowActivity : AppCompatActivity() {
         val incoming = if (showingFirst) binding.imageB else binding.imageA
         val outgoing = if (showingFirst) binding.imageA else binding.imageB
 
+        incoming.scaleType = fitScaleType(bitmap)
         incoming.setImageBitmap(bitmap)
         incoming.alpha = 0f
         incoming.visibility = View.VISIBLE
@@ -320,6 +324,25 @@ class SlideshowActivity : AppCompatActivity() {
         outgoing.animate().alpha(0f).setDuration(FADE_MS).start()
 
         showingFirst = !showingFirst
+    }
+
+    /**
+     * [ImageView.ScaleType] certo para esta foto, segundo [PhotoFitMode]
+     * escolhido em "Como exibir as fotos".
+     *
+     * `CENTER_CROP` preenche a tela recortando o excesso; `FIT_CENTER` mostra
+     * a foto inteira, com a borda preta do fundo sobrando dos lados — a
+     * decisão em si (quando cada uma faz sentido) é [PhotoFit.shouldFill],
+     * testada sem depender de Bitmap/ImageView.
+     */
+    private fun fitScaleType(bitmap: Bitmap): ImageView.ScaleType {
+        val metrics = resources.displayMetrics
+        val fill = PhotoFit.shouldFill(
+            mode = engine.currentSettings.photoFit,
+            photoIsLandscape = bitmap.width >= bitmap.height,
+            screenIsLandscape = metrics.widthPixels >= metrics.heightPixels,
+        )
+        return if (fill) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_CENTER
     }
 
     // -------------------------------------------------------------- controles
@@ -382,9 +405,9 @@ class SlideshowActivity : AppCompatActivity() {
 
     /**
      * O menu único: chamar alguém, adicionar fotos, quem está nas fotos, tempo
-     * de cada foto e privacidade — tudo atrás de um só botão, para a tela
-     * principal do porta-retrato não competir com cinco botões pela atenção de
-     * quem só quer ver as fotos passando.
+     * de cada foto, como exibir as fotos e privacidade — tudo atrás de um só
+     * botão, para a tela principal do porta-retrato não competir com vários
+     * botões pela atenção de quem só quer ver as fotos passando.
      */
     private fun showMenu() {
         val options = arrayOf(
@@ -392,6 +415,7 @@ class SlideshowActivity : AppCompatActivity() {
             getString(R.string.add_photos),
             getString(R.string.who_is_in_photos),
             getString(R.string.slideshow_interval),
+            getString(R.string.photo_fit_title),
             getString(R.string.privacy_title),
         )
         MaterialAlertDialogBuilder(this)
@@ -404,7 +428,8 @@ class SlideshowActivity : AppCompatActivity() {
                     1 -> pickPhotos()
                     2 -> startActivity(Intent(this, PeopleActivity::class.java))
                     3 -> showSettingsDialog()
-                    4 -> startActivity(Intent(this, PrivacyActivity::class.java))
+                    4 -> showPhotoFitDialog()
+                    5 -> startActivity(Intent(this, PrivacyActivity::class.java))
                 }
             }
             .show()
@@ -448,6 +473,34 @@ class SlideshowActivity : AppCompatActivity() {
                 engine.updateSettings(flipped)
                 showCurrent()
                 restartAdvanceLoop()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /**
+     * Como as fotos se encaixam na tela — ver [PhotoFitMode] para a lógica de
+     * cada opção. Muda a foto que já está na tela na hora (`showCurrent()`),
+     * não só as próximas — sem isso pareceria que o toque não fez nada até a
+     * próxima troca automática.
+     */
+    private fun showPhotoFitDialog() {
+        val current = settingsStore.load()
+        val modes = arrayOf(PhotoFitMode.AUTO, PhotoFitMode.FILL, PhotoFitMode.FIT)
+        val labels = arrayOf(
+            getString(R.string.photo_fit_auto),
+            getString(R.string.photo_fit_fill),
+            getString(R.string.photo_fit_fit),
+        )
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.photo_fit_title)
+            .setSingleChoiceItems(labels, modes.indexOf(current.photoFit)) { dialog, which ->
+                val updated = current.copy(photoFit = modes[which])
+                settingsStore.save(updated)
+                engine.updateSettings(updated)
+                showCurrent()
+                dialog.dismiss()
             }
             .setNegativeButton(R.string.cancel, null)
             .show()

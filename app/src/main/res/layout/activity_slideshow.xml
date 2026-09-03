@@ -90,14 +90,14 @@
          interagindo com a tela. -->
     <ImageButton
         android:id="@+id/photo_call_button_compact"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_margin="18dp"
         android:background="@drawable/bg_call_button"
         android:contentDescription="@string/call_people_in_photo"
         android:elevation="6dp"
-        android:padding="10dp"
+        android:padding="7dp"
         android:src="@drawable/ic_call"
         android:visibility="gone" />
 
@@ -136,13 +136,17 @@
 
     <!-- Único controle: um toque na tela mostra este botão, que abre a lista
          de opções (chamar, adicionar fotos, quem está nas fotos, tempo de
-         cada foto, privacidade). Some sozinho depois de alguns segundos, como
-         antes — só que agora é um botão, não cinco. -->
+         cada foto, como exibir as fotos, privacidade). Some sozinho depois de
+         alguns segundos, como antes — só que agora é um botão, não cinco.
+         Canto superior esquerdo, não embaixo: a legenda de nomes ocupa a
+         borda inferior inteira quando a tela é tocada (ver
+         applyControlsVisibility em SlideshowActivity), e um botão ali em cima
+         cobriria o nome. -->
     <Button
         android:id="@+id/menu_button"
         style="@style/SlideshowMenuButton"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="28dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="16dp"
         android:text="@string/menu_button"
         android:visibility="gone" />
 

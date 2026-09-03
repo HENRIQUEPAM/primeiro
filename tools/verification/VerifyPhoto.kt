@@ -1,3 +1,5 @@
+import com.portaretrato.app.photo.PhotoFit
+import com.portaretrato.app.photo.PhotoFitMode
 import com.portaretrato.app.photo.SlideshowEngine
 import com.portaretrato.app.photo.SlideshowOrder
 import com.portaretrato.app.photo.SlideshowSettings
@@ -195,6 +197,45 @@ fun testSettings() {
     check("invariante vale apos mudanca de acervo em 30 estados", violacoes == 0, "=$violacoes")
 }
 
+// ---------------------------------------------------------------------------
+// 6. Como a foto se encaixa na tela
+// ---------------------------------------------------------------------------
+fun testPhotoFit() {
+    println("[6] Como a foto se encaixa na tela")
+
+    check("padrao e AUTOMATICO", SlideshowSettings().photoFit == PhotoFitMode.AUTO)
+
+    // FILL e FIT sempre decidem igual, não importa a orientação.
+    for (foto in listOf(true, false)) for (tela in listOf(true, false)) {
+        check(
+            "FILL sempre preenche (foto=$foto tela=$tela)",
+            PhotoFit.shouldFill(PhotoFitMode.FILL, foto, tela),
+        )
+        check(
+            "FIT nunca preenche (foto=$foto tela=$tela)",
+            !PhotoFit.shouldFill(PhotoFitMode.FIT, foto, tela),
+        )
+    }
+
+    // AUTOMATICO: preenche quando a orientacao bate, mostra inteira quando nao bate.
+    check(
+        "AUTO preenche quando as duas sao deitadas",
+        PhotoFit.shouldFill(PhotoFitMode.AUTO, photoIsLandscape = true, screenIsLandscape = true),
+    )
+    check(
+        "AUTO preenche quando as duas sao em pe",
+        PhotoFit.shouldFill(PhotoFitMode.AUTO, photoIsLandscape = false, screenIsLandscape = false),
+    )
+    check(
+        "AUTO mostra inteira: foto deitada, tela em pe",
+        !PhotoFit.shouldFill(PhotoFitMode.AUTO, photoIsLandscape = true, screenIsLandscape = false),
+    )
+    check(
+        "AUTO mostra inteira: foto em pe, tela deitada",
+        !PhotoFit.shouldFill(PhotoFitMode.AUTO, photoIsLandscape = false, screenIsLandscape = true),
+    )
+}
+
 fun main() {
     println("=== Verificacao do slideshow ===\n")
     testEdgeCases(); println()
@@ -202,6 +243,7 @@ fun main() {
     testShuffle(); println()
     testLibraryChanges(); println()
     testSettings(); println()
+    testPhotoFit(); println()
     if (failures == 0) println("TODOS OS TESTES PASSARAM")
     else { println("$failures TESTE(S) FALHARAM"); kotlin.system.exitProcess(1) }
 }

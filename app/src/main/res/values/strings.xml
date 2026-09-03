@@ -93,6 +93,10 @@
     <string name="order_sequential">Ordem de sempre</string>
     <string name="seconds_format">%1$d segundos</string>
     <string name="photos_already_added">Estas fotos já estavam no aparelho.</string>
+    <string name="photo_fit_title">Como exibir as fotos</string>
+    <string name="photo_fit_auto">Automático (recomendado)</string>
+    <string name="photo_fit_fill">Preencher a tela (pode cortar as bordas)</string>
+    <string name="photo_fit_fit">Mostrar a foto inteira (pode sobrar borda preta)</string>
 
     <plurals name="photos_added">
         <item quantity="one">%1$d foto adicionada</item>

@@ -16,10 +16,46 @@ enum class SlideshowOrder {
     SHUFFLE,
 }
 
+/** Como uma foto é encaixada na tela. */
+enum class PhotoFitMode {
+    /** Sempre preenche a tela inteira, cortando o que não couber. */
+    FILL,
+
+    /** Sempre mostra a foto inteira, com borda preta se sobrar espaço. */
+    FIT,
+
+    /**
+     * Decide por foto: quando a orientação da foto bate com a da tela (as
+     * duas em pé, ou as duas deitadas), preenche — é o caso comum, retrato
+     * tirado com o celular em pé exibido num porta-retrato em pé, e a foto
+     * ocupa a tela toda sem sobrar quase nada de fora. Quando não bate (foto
+     * deitada num porta-retrato em pé, ou vice-versa), preencher cortaria
+     * lados inteiros da foto — muitas vezes rostos — então mostra a foto
+     * inteira em vez de arriscar isso.
+     */
+    AUTO,
+}
+
+/**
+ * Decide se uma foto deve preencher a tela ou ser mostrada inteira.
+ *
+ * Função pura — testável sem Bitmap/ImageView do Android — separada da
+ * decisão de *como* aplicar isso (scaleType), que fica na Activity.
+ */
+object PhotoFit {
+    fun shouldFill(mode: PhotoFitMode, photoIsLandscape: Boolean, screenIsLandscape: Boolean): Boolean =
+        when (mode) {
+            PhotoFitMode.FILL -> true
+            PhotoFitMode.FIT -> false
+            PhotoFitMode.AUTO -> photoIsLandscape == screenIsLandscape
+        }
+}
+
 /** Preferências do slideshow. */
 data class SlideshowSettings(
     val order: SlideshowOrder = SlideshowOrder.SHUFFLE,
     val intervalMs: Long = DEFAULT_INTERVAL_MS,
+    val photoFit: PhotoFitMode = PhotoFitMode.AUTO,
 ) {
     companion object {
         /**
@@ -67,6 +103,9 @@ class SlideshowEngine(
     val size: Int get() = photos.size
     val isEmpty: Boolean get() = photos.isEmpty()
     val intervalMs: Long get() = settings.intervalMs
+
+    /** Preferências atuais — para quem exibe (a Activity) precisar de mais que o intervalo. */
+    val currentSettings: SlideshowSettings get() = settings
 
     /**
      * Atualiza o acervo preservando a foto em exibição.
