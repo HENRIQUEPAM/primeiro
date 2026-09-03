@@ -28,7 +28,8 @@ import java.io.OutputStream
  * ```
  * magic  "PRFD" (4 bytes)
  * versão int
- * pessoas   int  n × { id, nome, nProtótipos int, nProtótipos × 192 floats }
+ * pessoas   int  n × { id, nome, telefone (string vazia = nenhum),
+ *                      nProtótipos int, nProtótipos × 192 floats }
  * pendentes int  n × { photoId, faceIndex, l, t, r, b, quality,
  *                      sugestão (string vazia = nenhuma), similaridade,
  *                      palpiteRecusado bool, 192 floats }
@@ -38,11 +39,20 @@ import java.io.OutputStream
  *
  * A versão existe para uma leitura futura saber recusar um arquivo que não
  * entende, em vez de interpretar bytes errados como embeddings.
+ *
+ * ## Versão 2: telefone da pessoa
+ *
+ * Um arquivo de versão 1 (sem telefone) é recusado por `read()`, que devolve
+ * `null` — o app recomeça vazio, do mesmo jeito que já trata qualquer arquivo
+ * ilegível (ver [FaceDatabaseStore]). Isso é aceitável aqui: o projeto ainda
+ * não tem instalação em produção com dado real, e o que se perde é só o que
+ * já foi reconhecido — as fotos em si não são tocadas, e a varredura
+ * reconstrói o índice sozinha.
  */
 object FaceDatabaseCodec {
 
     private const val MAGIC = "PRFD"
-    private const val VERSION = 1
+    private const val VERSION = 2
     private const val DIM = RecognitionTuning.EMBEDDING_SIZE
 
     fun write(db: FaceDatabase, out: OutputStream) {
@@ -56,6 +66,7 @@ object FaceDatabaseCodec {
         for (person in people) {
             data.writeUTF(person.id)
             data.writeUTF(person.name)
+            data.writeUTF(person.phone.orEmpty())
             val valid = person.prototypes.filter { it.size == DIM }
             data.writeInt(valid.size)
             for (proto in valid) for (v in proto) data.writeFloat(v)
@@ -126,11 +137,12 @@ object FaceDatabaseCodec {
         repeat(data.readInt().requirePlausible()) {
             val id = data.readUTF()
             val name = data.readUTF()
+            val phone = data.readUTF().ifEmpty { null }
             val prototypes = ArrayList<FloatArray>()
             repeat(data.readInt().requirePlausible()) {
                 prototypes += FloatArray(DIM) { data.readFloat() }
             }
-            people += Person(id, name, prototypes)
+            people += Person(id, name, prototypes, phone)
         }
 
         val pending = ArrayList<PendingFace>()

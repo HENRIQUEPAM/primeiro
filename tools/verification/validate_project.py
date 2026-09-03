@@ -93,6 +93,15 @@ def declared_resources():
 
 REF_RE = re.compile(r'"@(?:\+)?(string|color|style|drawable|layout|mipmap)/([A-Za-z0-9_.]+)"')
 
+# Prefixos de estilo que sao convencao reservada do framework/das bibliotecas
+# (AppCompat, Material Components) para os proprios widgets — nunca de um
+# estilo local do projeto. `style="@style/Widget.Material3.X"` num layout
+# resolve na biblioteca em tempo de compilacao; este checker so enxerga
+# res/values/*.xml deste projeto, entao nao tem como confirmar essas por si
+# so. Sem esta lista, TODO uso de um widget padrao do Material (bem comum)
+# apareceria como referencia quebrada.
+EXTERNAL_STYLE_PREFIXES = ("Widget.", "Theme.", "TextAppearance.", "ShapeAppearance.", "Base.")
+
 
 def check_resource_refs(declared):
     print("[2] Referencias a recursos em XML")
@@ -100,8 +109,9 @@ def check_resource_refs(declared):
     for path in list(walk(RES)) + [MANIFEST]:
         text = open(path, encoding="utf-8").read()
         for kind, name in REF_RE.findall(text):
-            # @+id nao entra aqui (regex nao captura 'id'), e refs de estilo
-            # com ponto sao herancas ("Theme.X") resolvidas pelo parent.
+            # @+id nao entra aqui (regex nao captura 'id').
+            if kind == "style" and name.startswith(EXTERNAL_STYLE_PREFIXES):
+                continue
             if name not in declared[kind]:
                 missing.append(f"{os.path.relpath(path, ROOT)} -> @{kind}/{name}")
     if missing:

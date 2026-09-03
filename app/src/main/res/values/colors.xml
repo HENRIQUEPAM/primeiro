@@ -31,4 +31,18 @@
     <color name="answer_green">#FF1B8E3D</color>
     <color name="decline_red">#FFC62828</color>
     <color name="secondary_button">@color/navy_600</color>
+
+    <!--
+      Âmbar: também funcional, não de marca — usada só na tela de nomear
+      rostos, onde o app está SUGERINDO algo que o usuário precisa conferir
+      antes de aceitar. É a mesma lógica do verde/vermelho: uma cor de atenção
+      não deve se misturar ao azul do resto do app, senão perde o efeito de
+      chamar atenção.
+    -->
+    <color name="amber_banner_bg">#FFFFF3E0</color>
+    <!-- Marrom-amber escuro: contraste seguro sobre o fundo claro acima, em
+         vez do amarelo puro (que falha contraste em fundo claro). -->
+    <color name="amber_banner_text">#FF8A5700</color>
+    <color name="amber_button">#FFFFA000</color>
+    <color name="on_amber_button">#FF241600</color>
 </resources>

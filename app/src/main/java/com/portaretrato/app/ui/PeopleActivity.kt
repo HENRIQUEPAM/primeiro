@@ -1,15 +1,23 @@
 package com.portaretrato.app.ui
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.R
+import com.portaretrato.app.call.PhoneNumbers
+import com.portaretrato.app.call.TrustedContact
+import com.portaretrato.app.call.TrustedContactsStore
 import com.portaretrato.app.databinding.ActivityPeopleBinding
 import com.portaretrato.app.people.FaceDatabase
 import com.portaretrato.app.people.PendingFace
@@ -28,11 +36,21 @@ import kotlinx.coroutines.withContext
  * ## O fluxo que faz o cadastro terminar
  *
  * A tela pergunta por **um rosto de cada vez**, com o rosto grande na tela e
- * duas respostas possíveis. Quando o usuário dá um nome, o app reprocessa a
- * fila inteira: as outras fotos da mesma pessoa saem junto, e a próxima
- * pergunta já é sobre outra pessoa. Na prática o cadastro de uma família
- * inteira são poucas perguntas, não uma por foto — e é isso que decide se o
- * recurso é usado ou abandonado.
+ * o nome já digitável ali mesmo — sem abrir um diálogo à parte. Quando o
+ * usuário salva, o app reprocessa a fila inteira: as outras fotos da mesma
+ * pessoa saem junto, e a próxima pergunta já é sobre outra pessoa. Na prática
+ * o cadastro de uma família inteira são poucas perguntas, não uma por foto —
+ * e é isso que decide se o recurso é usado ou abandonado.
+ *
+ * ## O telefone une reconhecimento e chamada
+ *
+ * "Usar contato do celular" busca o número na agenda do sistema (o seletor
+ * nativo — nenhuma permissão de contatos é exigida para isso, o Android
+ * concede acesso só ao contato escolhido) e, ao salvar, grava o telefone na
+ * pessoa reconhecida E cadastra a mesma pessoa em
+ * [TrustedContactsStore] — de modo que nomear um rosto com o telefone da avó
+ * já deixa a avó pronta para ser chamada, sem cadastrá-la de novo na tela de
+ * contatos.
  *
  * ## O que a tela nunca faz
  *
@@ -44,6 +62,8 @@ class PeopleActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPeopleBinding
     private lateinit var library: PhotoLibrary
+    private lateinit var contacts: TrustedContactsStore
+
     /** Compartilhado com o slideshow: ver [PortaRetratoApp.faceScanner]. */
     private val coordinator: FaceScanCoordinator by lazy { PortaRetratoApp.from(this).faceScanner }
     private lateinit var adapter: PersonAdapter
@@ -53,21 +73,41 @@ class PeopleActivity : AppCompatActivity() {
     /** Rosto sendo perguntado agora. */
     private var reviewing: PendingFace? = null
 
+    /** Telefone escolhido nesta rodada, em E.164 sem "+". Ainda não salvo. */
+    private var pickedPhone: String? = null
+
+    /**
+     * Rostos que o usuário mandou pular NESTA sessão, sem decisão nenhuma.
+     * Não é persistido de propósito — "pular por enquanto" é sobre a ordem
+     * em que as perguntas aparecem agora, não sobre o que fica salvo.
+     */
+    private val skippedForNow = mutableSetOf<String>()
+
+    /** Seletor nativo de contatos: dispensa a permissão READ_CONTACTS. */
+    private val pickContact = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let(::loadPickedContact)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPeopleBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         library = PhotoLibrary(this)
+        contacts = TrustedContactsStore(this)
 
         adapter = PersonAdapter(onClick = ::showPersonMenu)
         binding.peopleList.layoutManager = LinearLayoutManager(this)
         binding.peopleList.adapter = adapter
 
-        binding.confirmButton.setOnClickListener { confirmSuggestion() }
-        binding.rejectButton.setOnClickListener { rejectSuggestion() }
-        binding.nameButton.setOnClickListener { askForName() }
-        binding.skipButton.setOnClickListener { skipFace() }
+        binding.saveButton.setOnClickListener { save() }
+        binding.skipForNowButton.setOnClickListener { skipForNow() }
+        binding.discardButton.setOnClickListener { discardFace() }
+        binding.pickContactButton.setOnClickListener { launchContactPicker() }
         binding.rescanButton.setOnClickListener { startScan() }
 
         refresh()
@@ -112,12 +152,31 @@ class PeopleActivity : AppCompatActivity() {
         showNextFace()
     }
 
+    /**
+     * Escolhe o próximo rosto a perguntar.
+     *
+     * Ignora quem foi "pulado por enquanto" nesta sessão — mas, se todos os
+     * pendentes já foram pulados, esquece os pulos e mostra de novo. Sem essa
+     * válvula, a fila pareceria vazia assim que o usuário desse uma volta
+     * inteira pulando, mesmo com rostos de verdade ainda esperando.
+     */
+    private fun pickNext(): PendingFace? {
+        val pending = db.pending
+        val available = pending.filterNot { it.id in skippedForNow }
+        val pool = if (available.isEmpty() && pending.isNotEmpty()) {
+            skippedForNow.clear()
+            pending
+        } else {
+            available
+        }
+        return pool.maxByOrNull { it.quality }
+    }
+
     private fun showNextFace() {
         // Mantém o rosto atual se ele ainda estiver na fila; trocar de pergunta
         // no meio de uma resposta é a forma mais rápida de o usuário vincular a
         // pessoa errada.
-        val next = db.pending.firstOrNull { it.id == reviewing?.id }
-            ?: db.pending.maxByOrNull { it.quality }
+        val next = db.pending.firstOrNull { it.id == reviewing?.id } ?: pickNext()
 
         reviewing = next
         if (next == null) {
@@ -131,16 +190,17 @@ class PeopleActivity : AppCompatActivity() {
 
         val suggested = next.suggestedPersonId?.let { db.person(it) }
         if (suggested != null) {
-            binding.reviewQuestion.text = getString(R.string.is_this_person, suggested.name)
-            binding.confirmButton.visibility = View.VISIBLE
-            binding.rejectButton.visibility = View.VISIBLE
-            binding.nameButton.setText(R.string.someone_else)
+            binding.suggestionHint.text = getString(R.string.suggestion_hint, suggested.name)
+            binding.suggestionHint.visibility = View.VISIBLE
+            binding.nameInput.setText(suggested.name)
         } else {
-            binding.reviewQuestion.setText(R.string.who_is_this)
-            binding.confirmButton.visibility = View.GONE
-            binding.rejectButton.visibility = View.GONE
-            binding.nameButton.setText(R.string.who_is_this_action)
+            binding.suggestionHint.visibility = View.GONE
+            binding.nameInput.setText("")
         }
+
+        // O telefone da pessoa sugerida, se já houver um: não faz sentido
+        // pedir para escolher o contato de novo toda vez que ela reaparece.
+        setPickedPhone(suggested?.phone)
 
         loadFace(next)
     }
@@ -170,19 +230,77 @@ class PeopleActivity : AppCompatActivity() {
         }
     }
 
-    private fun confirmSuggestion() {
+    // -------------------------------------------------------------- decisões
+
+    /**
+     * Salva o nome digitado (ou confirma a sugestão, se o texto não mudou) e,
+     * se houver telefone escolhido, vincula a pessoa também na lista de quem
+     * dá para chamar.
+     */
+    private fun save() {
         val face = reviewing ?: return
-        announce(db.confirmSuggestion(face.id))
+        val typed = binding.nameInput.text?.toString()?.trim().orEmpty()
+        if (typed.isEmpty()) {
+            toast(R.string.name_required)
+            return
+        }
+
+        val suggested = face.suggestedPersonId?.let { db.person(it) }
+        val result = if (suggested != null && typed.equals(suggested.name, ignoreCase = true)) {
+            // Mesmo nome da sugestão: confirma o vínculo já calculado, em vez
+            // de repassar pelo casamento por nome do nameFace — evita o caso
+            // raro em que a similaridade fica entre o limiar de sugestão e o
+            // de "mesmo nome, mesma pessoa", e um homônimo seria criado à toa.
+            db.confirmSuggestion(face.id)
+        } else {
+            db.nameFace(face.id, typed)
+        }
+
+        val person = result.person
+        if (person != null) {
+            pickedPhone?.let { phone -> linkPhoneAndContact(person, phone) }
+        }
+        announce(result)
     }
 
-    private fun rejectSuggestion() {
-        val face = reviewing ?: return
-        db.rejectSuggestion(face.id)
+    /**
+     * Grava o telefone na pessoa reconhecida e a torna chamável, sem duplicar
+     * cadastro: se já existir um contato com este telefone, o vínculo é
+     * atualizado nele, preservando o que já estava configurado (como
+     * atendimento automático).
+     */
+    private fun linkPhoneAndContact(person: Person, phone: String) {
+        db.linkPhone(person.id, phone)
         coordinator.persist()
+
+        val uid = "tel:$phone"
+        val existing = contacts.all().firstOrNull { it.uid == uid }
+        contacts.upsert(
+            TrustedContact(
+                uid = uid,
+                name = person.name,
+                phone = phone,
+                autoAnswerEnabled = existing?.autoAnswerEnabled ?: false,
+            ),
+        )
+    }
+
+    /**
+     * Não decide nada — só tira este rosto da frente da fila por agora. Se o
+     * palpite estava errado, limpa a sugestão (para não insistir nela), mas o
+     * rosto continua esperando um nome depois.
+     */
+    private fun skipForNow() {
+        val face = reviewing ?: return
+        if (face.suggestedPersonId != null) {
+            db.rejectSuggestion(face.id)
+            coordinator.persist()
+        }
+        skippedForNow += face.id
         showNextFace()
     }
 
-    private fun skipFace() {
+    private fun discardFace() {
         val face = reviewing ?: return
         db.dismiss(face.id)
         coordinator.persist()
@@ -190,40 +308,11 @@ class PeopleActivity : AppCompatActivity() {
         refresh()
     }
 
-    private fun askForName() {
-        val face = reviewing ?: return
-        val input = EditText(this).apply {
-            hint = getString(R.string.person_name_hint)
-            setSingleLine()
-            textSize = 20f
-        }
-
-        val existing = db.people.map { it.name }.toTypedArray()
-        val builder = AlertDialog.Builder(this)
-            .setTitle(R.string.who_is_this)
-            .setView(input)
-            .setPositiveButton(R.string.save) { _, _ ->
-                announce(db.nameFace(face.id, input.text.toString()))
-            }
-            .setNegativeButton(R.string.cancel, null)
-
-        // Atalho para quem já existe: digitar de novo o nome da avó a cada
-        // rosto é o tipo de atrito que faz o cadastro parar na metade.
-        if (existing.isNotEmpty()) {
-            builder.setNeutralButton(R.string.pick_existing) { _, _ ->
-                AlertDialog.Builder(this)
-                    .setTitle(R.string.pick_existing)
-                    .setItems(existing) { _, which ->
-                        announce(db.nameFace(face.id, existing[which]))
-                    }
-                    .show()
-            }
-        }
-        builder.show()
-    }
-
     /** Aplica o resultado e conta ao usuário o que aconteceu junto. */
     private fun announce(result: FaceDatabase.NameResult) {
+        // Sempre grava — mesmo quando linkPhoneAndContact já gravou por causa
+        // do telefone, persistir de novo é inofensivo, e sem isto um "Salvar"
+        // sem telefone vinculado nunca chegaria a tocar o disco.
         coordinator.persist()
         reviewing = null
 
@@ -241,6 +330,43 @@ class PeopleActivity : AppCompatActivity() {
             ).show()
         }
         refresh()
+    }
+
+    // ------------------------------------------------------------- telefone
+
+    private fun launchContactPicker() {
+        pickContact.launch(Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI))
+    }
+
+    private fun loadPickedContact(uri: Uri) {
+        val projection = arrayOf(
+            ContactsContract.CommonDataKinds.Phone.NUMBER,
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+        )
+        contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+            if (!cursor.moveToFirst()) return
+            val number = cursor.getString(0)
+            val name = cursor.getString(1)
+            val normalized = PhoneNumbers.normalize(number.orEmpty())
+            if (normalized == null) {
+                toast(R.string.contact_without_phone)
+                return
+            }
+            // Escolher um contato é uma decisão firme: sobrescreve o que
+            // estivesse digitado, em vez de só acrescentar o telefone.
+            if (!name.isNullOrBlank()) binding.nameInput.setText(name)
+            setPickedPhone(normalized)
+        }
+    }
+
+    private fun setPickedPhone(phone: String?) {
+        pickedPhone = phone
+        if (phone != null) {
+            binding.linkedPhone.text = getString(R.string.linked_phone, phone)
+            binding.linkedPhone.visibility = View.VISIBLE
+        } else {
+            binding.linkedPhone.visibility = View.GONE
+        }
     }
 
     // ---------------------------------------------------------------- pessoas
@@ -289,6 +415,8 @@ class PeopleActivity : AppCompatActivity() {
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
+
+    private fun toast(resId: Int) = Toast.makeText(this, resId, Toast.LENGTH_LONG).show()
 
     override fun onDestroy() {
         // Ver SlideshowActivity.onStop: cancelar a varredura é do app inteiro.

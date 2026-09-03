@@ -55,7 +55,7 @@ Projeto Android completo e buildável. Ver [`COMO-RODAR.md`](../COMO-RODAR.md).
 | `CallMessagingService.kt` | Push (FCM) para quando o app está morto |
 | `FcmTokenRegistrar.kt` | Registra o token em `users/{uid}/fcmTokens` |
 | `CallNotifications.kt` | Canais + notificação `CallStyle` |
-| `TrustedContactsStore.kt` | Contatos de confiança, local |
+| `TrustedContactsStore.kt` | Contatos de confiança, local. Escrita também por `ui/PeopleActivity` (reconhecimento) quando um rosto é vinculado a um telefone |
 | `AuthSession.kt` | Dona do login + do `IncomingCallWatcher`, vive na `Application` |
 | `ui/CallActivity.kt` | Tela de chamada |
 | `ui/HomeActivity.kt` | Discagem e contatos — alcançada pelo menu do porta-retrato |

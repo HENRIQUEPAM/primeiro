@@ -28,12 +28,18 @@ class PersonAdapter(
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val row = rows[position]
+        val res = holder.itemView.resources
         holder.binding.personName.text = row.person.name
-        holder.binding.personPhotos.text = holder.itemView.resources.getQuantityString(
-            R.plurals.appears_in_photos,
-            row.photoCount,
-            row.photoCount,
-        )
+
+        val photos = res.getQuantityString(R.plurals.appears_in_photos, row.photoCount, row.photoCount)
+        // O telefone só aparece aqui como confirmação de que o vínculo feito
+        // ao nomear o rosto (ver PeopleActivity) realmente pegou — sem isso o
+        // usuário não teria como saber, sem abrir a tela de contatos, se essa
+        // pessoa já está pronta para ser chamada.
+        holder.binding.personPhotos.text = row.person.phone?.let { phone ->
+            res.getString(R.string.person_row_with_phone, photos, phone)
+        } ?: photos
+
         holder.itemView.setOnClickListener { onClick(row.person) }
     }
 

@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:padding="12dp"
-        android:background="#FFF3E0"
+        android:background="@color/amber_banner_bg"
         android:textSize="15sp"
         android:visibility="gone" />
 

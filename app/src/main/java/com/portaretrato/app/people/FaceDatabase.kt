@@ -12,9 +12,16 @@ class Person(
     val name: String,
     /** Até [com.portaretrato.app.recognition.RecognitionTuning.MAX_PROTOTYPES_PER_PERSON] vetores. */
     val prototypes: List<FloatArray>,
+    /**
+     * Telefone em E.164 sem "+", quando o usuário vinculou um contato ao
+     * nomear o rosto. `null` até lá — reconhecer um rosto não pressupõe saber
+     * o telefone de quem ele é.
+     */
+    val phone: String? = null,
 ) {
-    fun withName(newName: String) = Person(id, newName, prototypes)
-    fun withPrototypes(newPrototypes: List<FloatArray>) = Person(id, name, newPrototypes)
+    fun withName(newName: String) = Person(id, newName, prototypes, phone)
+    fun withPrototypes(newPrototypes: List<FloatArray>) = Person(id, name, newPrototypes, phone)
+    fun withPhone(newPhone: String?) = Person(id, name, prototypes, newPhone)
 }
 
 /**
@@ -296,6 +303,20 @@ class FaceDatabase(
         if (name.isEmpty()) return false
         peopleById[personId] = person.withName(name)
         invalidate()
+        return true
+    }
+
+    /**
+     * Vincula (ou desvincula, com `phone = null`) um telefone à pessoa.
+     *
+     * Não mexe na galeria — telefone não entra no reconhecimento, só no
+     * cadastro. Quem decide se isso também cadastra a pessoa para chamar é o
+     * chamador (ver [com.portaretrato.app.ui.PeopleActivity]); esta classe
+     * conhece rostos, não sabe o que é uma chamada.
+     */
+    fun linkPhone(personId: String, phone: String?): Boolean {
+        val person = peopleById[personId] ?: return false
+        peopleById[personId] = person.withPhone(phone)
         return true
     }
 

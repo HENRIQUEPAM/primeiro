@@ -349,6 +349,35 @@ fun testCodec() {
     val match = lido.gallery().match(near(ana, 0.90f))
     check("a galeria recarregada reconhece", match?.personName == "Vó Ana", "=${match?.personName}")
 
+    // Telefone: por padrao ninguem tem, e o round-trip preserva o que foi vinculado.
+    check("pessoa nasce sem telefone", db.people.first().phone == null, "=${db.people.first().phone}")
+    check("lida de volta tambem sem telefone", lido.people.first().phone == null)
+
+    val comTelefone = FaceDatabase()
+    comTelefone.applyScan(photo("t1", unknownFace(randomEmbedding())))
+    comTelefone.nameFace(comTelefone.pending.first().id, "Pedro")
+    val pedroId = comTelefone.people.first().id
+    check("linkPhone vincula", comTelefone.linkPhone(pedroId, "5511999998888"))
+    check("linkPhone em id inexistente e recusado", !comTelefone.linkPhone("zzz", "551100000000"))
+
+    val relidoComTelefone = FaceDatabaseCodec.fromBytes(FaceDatabaseCodec.toBytes(comTelefone))
+    check("telefone sobrevive ao round-trip",
+        relidoComTelefone?.people?.first()?.phone == "5511999998888",
+        "=${relidoComTelefone?.people?.first()?.phone}")
+
+    check("linkPhone(null) desvincula", comTelefone.linkPhone(pedroId, null))
+    check("e o round-trip preserva o desvinculo",
+        FaceDatabaseCodec.fromBytes(FaceDatabaseCodec.toBytes(comTelefone))?.people?.first()?.phone == null)
+
+    // Um arquivo da versao 1 (sem o campo telefone) e recusado, nao lido com o
+    // campo errado: melhor recomecar vazio do que interpretar bytes de
+    // telefone como se fossem outra coisa.
+    val versao1 = byteArrayOf(
+        'P'.code.toByte(), 'R'.code.toByte(), 'F'.code.toByte(), 'D'.code.toByte(),
+        0, 0, 0, 1, // versao antiga, big-endian
+    )
+    check("arquivo da versao antiga e recusado", FaceDatabaseCodec.fromBytes(versao1) == null)
+
     // Tamanho: o argumento que justifica o formato binario.
     val protoBytes = lido.people.sumOf { it.prototypes.size } * DIM * 4
     println("      arquivo=${bytes.size} bytes, dos quais $protoBytes em embeddings")
