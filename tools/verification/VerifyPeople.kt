@@ -321,6 +321,37 @@ fun testPersonEditing() {
 }
 
 // ---------------------------------------------------------------------------
+// 7b. Vincular a rosto humano-mente reconhecido, ignorando a semelhanca
+// ---------------------------------------------------------------------------
+fun testAssignToExistingPerson() {
+    println("[7b] Escolher pessoa ja cadastrada (o humano acerta, o algoritmo nao)")
+
+    val db = FaceDatabase()
+    db.applyScan(photo("f1", unknownFace(randomEmbedding())))
+    db.nameFace(db.pending.first().id, "Zé")
+    val zeId = db.people.first().id
+
+    // Um rosto SEM sugestao nenhuma e com embedding bem diferente do de Zé —
+    // exatamente o caso em que nameFace(mesmo nome) criaria um homonimo.
+    db.applyScan(photo("f2", unknownFace(randomEmbedding())))
+    val pendente = db.pending.first { it.photoId == "f2" }
+    check("o rosto novo nao tem sugestao", pendente.suggestedPersonId == null)
+
+    val result = db.assignToExistingPerson(pendente.id, zeId)
+    check("o vinculo forcado devolve a pessoa certa", result.person?.name == "Zé", "=${result.person?.name}")
+    check("NENHUM homonimo foi criado", db.personCount == 1, "=${db.personCount}")
+    check("a foto fica vinculada a Zé", db.namesIn("f2") == listOf("Zé"), "=${db.namesIn("f2")}")
+    check("o rosto sai da fila", db.pending.none { it.id == pendente.id })
+
+    // Entradas invalidas nao quebram nada.
+    check("pendingId inexistente e recusado", db.assignToExistingPerson("nao#0", zeId).person == null)
+    db.applyScan(photo("f3", unknownFace(randomEmbedding())))
+    val outro = db.pending.first { it.photoId == "f3" }
+    check("personId inexistente e recusado", db.assignToExistingPerson(outro.id, "zzz").person == null)
+    check("e o rosto continua na fila", db.pending.any { it.id == outro.id })
+}
+
+// ---------------------------------------------------------------------------
 // 8. Persistencia
 // ---------------------------------------------------------------------------
 fun testCodec() {
@@ -444,6 +475,7 @@ fun main() {
     testPendingCap(); println()
     testPhotoRemoval(); println()
     testPersonEditing(); println()
+    testAssignToExistingPerson(); println()
     testCodec(); println()
     testGalleryCache(); println()
     if (failures == 0) println("TODOS OS TESTES PASSARAM")

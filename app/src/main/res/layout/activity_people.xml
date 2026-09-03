@@ -96,6 +96,18 @@
                     android:textSize="20sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Para quando o algoritmo erra e o humano acerta: o rosto pode
+                 ser claramente uma pessoa já cadastrada mesmo que a
+                 semelhança calculada não tenha alcançado uma sugestão. -->
+            <Button
+                android:id="@+id/pick_existing_person_button"
+                style="?attr/borderlessButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/pick_existing_person_button"
+                android:textSize="15sp"
+                android:visibility="gone" />
+
             <Button
                 android:id="@+id/pick_contact_button"
                 style="@style/ContactActionButton"

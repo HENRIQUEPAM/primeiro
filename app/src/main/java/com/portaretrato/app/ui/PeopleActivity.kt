@@ -108,6 +108,7 @@ class PeopleActivity : AppCompatActivity() {
         binding.skipForNowButton.setOnClickListener { skipForNow() }
         binding.discardButton.setOnClickListener { discardFace() }
         binding.pickContactButton.setOnClickListener { launchContactPicker() }
+        binding.pickExistingPersonButton.setOnClickListener { pickExistingPerson() }
         binding.rescanButton.setOnClickListener { startScan() }
 
         refresh()
@@ -202,6 +203,11 @@ class PeopleActivity : AppCompatActivity() {
         // pedir para escolher o contato de novo toda vez que ela reaparece.
         setPickedPhone(suggested?.phone)
 
+        // Só vale a pena oferecer "escolher da lista" se já existir alguém
+        // cadastrado para escolher.
+        binding.pickExistingPersonButton.visibility =
+            if (db.personCount > 0) View.VISIBLE else View.GONE
+
         loadFace(next)
     }
 
@@ -255,7 +261,30 @@ class PeopleActivity : AppCompatActivity() {
         } else {
             db.nameFace(face.id, typed)
         }
+        applyPersonResult(result)
+    }
 
+    /**
+     * "Já é alguém cadastrado?" — para quando o humano reconhece a pessoa e o
+     * algoritmo não. Ao contrário de digitar o nome de novo, o vínculo aqui é
+     * forçado: nunca cria homônimo, mesmo que a semelhança calculada seja
+     * baixa (ângulo ruim, óculos novos, criança que mudou).
+     */
+    private fun pickExistingPerson() {
+        val face = reviewing ?: return
+        val people = db.people
+        if (people.isEmpty()) return
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.pick_existing_person_title)
+            .setItems(people.map { it.name }.toTypedArray()) { _, which ->
+                applyPersonResult(db.assignToExistingPerson(face.id, people[which].id))
+            }
+            .show()
+    }
+
+    /** Vincula o telefone escolhido nesta rodada, se houver, e anuncia o resultado. */
+    private fun applyPersonResult(result: FaceDatabase.NameResult) {
         val person = result.person
         if (person != null) {
             pickedPhone?.let { phone -> linkPhoneAndContact(person, phone) }

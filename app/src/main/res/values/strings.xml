@@ -112,6 +112,8 @@
     <string name="person_name_hint">Nome da pessoa nesta foto</string>
     <string name="suggestion_hint">Parece ser \"%1$s\" — confira e toque em Salvar</string>
     <string name="pick_phone_contact">📱 Usar contato do celular</string>
+    <string name="pick_existing_person_button">👥 Já é alguém cadastrado? Escolher da lista</string>
+    <string name="pick_existing_person_title">Quem desta lista é esta pessoa?</string>
     <string name="linked_phone">Telefone vinculado: +%1$s</string>
     <string name="save_and_link">Salvar e vincular</string>
     <string name="skip_for_now">Pular por enquanto</string>

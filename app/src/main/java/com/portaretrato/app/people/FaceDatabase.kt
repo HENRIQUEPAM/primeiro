@@ -292,6 +292,29 @@ class FaceDatabase(
     }
 
     /**
+     * O usuário reconheceu o rosto como sendo uma pessoa que **já existe**,
+     * escolhida de uma lista — ignorando o que a semelhança calculou.
+     *
+     * Existe para o caso em que o humano acerta e o algoritmo não: ângulo
+     * ruim, óculos novos, criança que mudou. Sem isto, o único jeito de
+     * vincular a uma pessoa existente era digitar o nome dela de novo — e se a
+     * semelhança do rosto ficasse abaixo de
+     * [com.portaretrato.app.recognition.RecognitionTuning.SAME_NAME_CONFIRM_THRESHOLD],
+     * [nameFace] criaria um homônimo em vez de juntar, mesmo com o nome
+     * idêntico. Aqui o vínculo é sempre com o `personId` informado, sem
+     * segunda-adivinhação.
+     */
+    fun assignToExistingPerson(pendingId: String, personId: String): NameResult {
+        val face = pendingById[pendingId] ?: return NameResult(null, 0)
+        if (personId !in peopleById) return NameResult(null, 0)
+
+        pendingById.remove(pendingId)
+        link(face.photoId, personId)
+        reinforce(personId, face.embedding)
+        return NameResult(peopleById[personId], reclassifyPending())
+    }
+
+    /**
      * O palpite estava errado. O rosto continua na fila, mas sem sugestão —
      * repetir o mesmo palpite recusado é a forma mais rápida de o usuário
      * perder a confiança no app.
