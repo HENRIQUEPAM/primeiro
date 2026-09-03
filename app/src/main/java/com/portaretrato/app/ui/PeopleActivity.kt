@@ -297,6 +297,11 @@ class PeopleActivity : AppCompatActivity() {
             coordinator.persist()
         }
         skippedForNow += face.id
+        // showNextFace() reaproveita `reviewing` se ele ainda estiver na fila
+        // — e como pular não remove nada de `db.pending`, o mesmo rosto seria
+        // encontrado de novo antes mesmo de pickNext() rodar. Sem limpar aqui,
+        // "pular por enquanto" não pulava nada.
+        reviewing = null
         showNextFace()
     }
 

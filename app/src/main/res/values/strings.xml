@@ -87,6 +87,7 @@
     <string name="add_photos">Adicionar fotos</string>
     <string name="call_someone">Chamar alguém</string>
     <string name="menu_button">Menu</string>
+    <string name="call_people_in_photo">Ligar para quem está nesta foto</string>
     <string name="slideshow_interval">Tempo de cada foto</string>
     <string name="order_shuffle">Ordem aleatória</string>
     <string name="order_sequential">Ordem de sempre</string>

@@ -1,7 +1,6 @@
 package com.portaretrato.app.call.ui
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -14,12 +13,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.R
 import com.portaretrato.app.call.AuthState
+import com.portaretrato.app.call.CallDispatcher
 import com.portaretrato.app.call.CallMethod
 import com.portaretrato.app.call.CallOptions
 import com.portaretrato.app.call.CallService
 import com.portaretrato.app.call.TrustedContact
 import com.portaretrato.app.call.TrustedContactsStore
-import com.portaretrato.app.call.WhatsAppFallback
 import com.portaretrato.app.databinding.ActivityHomeBinding
 import com.portaretrato.app.ui.PrivacyActivity
 import kotlinx.coroutines.flow.collectLatest
@@ -86,51 +85,9 @@ class HomeActivity : AppCompatActivity() {
 
     // -------------------------------------------------------------- chamadas
 
-    /**
-     * Executa a forma de chamada escolhida.
-     *
-     * Cada caminho falha de forma visível e explicada — nada de botão que não
-     * faz nada, que para o público-alvo equivale a aparelho quebrado.
-     */
+    /** Ver [CallDispatcher] — o mesmo despacho é usado pelo botão de ligar do porta-retrato. */
     private fun startCall(contact: TrustedContact, method: CallMethod) {
-        val phone = contact.phone.orEmpty()
-        when (method) {
-            CallMethod.WHATSAPP_VIDEO ->
-                if (!WhatsAppFallback.startVideoCall(this, phone)) {
-                    toast(R.string.whatsapp_missing)
-                }
-
-            CallMethod.WHATSAPP_CHAT ->
-                if (!WhatsAppFallback.openChat(this, phone)) {
-                    toast(R.string.whatsapp_missing)
-                }
-
-            CallMethod.PHONE_DIAL -> dial(phone)
-
-            CallMethod.APP_VIDEO -> {
-                if (!appCallConfigured) {
-                    toast(R.string.app_call_not_configured)
-                    return
-                }
-                CallService.dial(this, contact.uid, contact.name, video = true)
-                startActivity(Intent(this, CallActivity::class.java))
-            }
-        }
-    }
-
-    /**
-     * `ACTION_DIAL` e não `ACTION_CALL`: abre o discador com o número pronto,
-     * sem exigir a permissão `CALL_PHONE`. Uma permissão perigosa a menos, e o
-     * usuário ainda confirma a ligação — que é o comportamento certo quando um
-     * toque errado custa dinheiro.
-     */
-    private fun dial(phone: String) {
-        val normalized = WhatsAppFallback.normalize(phone) ?: return
-        try {
-            startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:+$normalized")))
-        } catch (e: Exception) {
-            toast(R.string.dialer_missing)
-        }
+        CallDispatcher.dispatch(this, contact, method, appCallConfigured)
     }
 
     // --------------------------------------------------------------- estado

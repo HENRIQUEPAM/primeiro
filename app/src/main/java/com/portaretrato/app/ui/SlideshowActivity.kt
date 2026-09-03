@@ -14,9 +14,16 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.portaretrato.app.R
+import com.portaretrato.app.call.AuthState
+import com.portaretrato.app.call.CallDispatcher
+import com.portaretrato.app.call.CallOptions
+import com.portaretrato.app.call.CallService
+import com.portaretrato.app.call.TrustedContact
+import com.portaretrato.app.call.TrustedContactsStore
 import com.portaretrato.app.call.ui.HomeActivity
 import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.databinding.ActivitySlideshowBinding
+import com.portaretrato.app.people.Person
 import com.portaretrato.app.photo.PhotoLibrary
 import com.portaretrato.app.photo.SlideshowEngine
 import com.portaretrato.app.photo.SlideshowOrder
@@ -67,6 +74,9 @@ class SlideshowActivity : AppCompatActivity() {
     private var hideControlsJob: Job? = null
     private var showingFirst = true
 
+    /** Quem, na foto atual, tem telefone vinculado — e portanto pode ser chamado. */
+    private var photoCallable: List<Person> = emptyList()
+
     /** Seletor do sistema: não exige permissão de armazenamento. */
     private val pickPhotos = registerForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS_PER_PICK),
@@ -103,6 +113,7 @@ class SlideshowActivity : AppCompatActivity() {
         binding.root.setOnClickListener { toggleControls() }
         binding.menuButton.setOnClickListener { showMenu() }
         binding.emptyAddButton.setOnClickListener { pickPhotos() }
+        binding.photoCallButton.setOnClickListener { onPhotoCallTapped() }
     }
 
     override fun onStart() {
@@ -143,6 +154,8 @@ class SlideshowActivity : AppCompatActivity() {
         binding.imageA.setImageDrawable(null)
         binding.imageB.setImageDrawable(null)
         binding.photoNames.visibility = View.GONE
+        photoCallable = emptyList()
+        binding.photoCallButton.visibility = View.GONE
         showControls()
     }
 
@@ -180,6 +193,7 @@ class SlideshowActivity : AppCompatActivity() {
 
             crossFadeTo(bitmap)
             showNames(id)
+            showCallButton(id)
         }
     }
 
@@ -206,6 +220,79 @@ class SlideshowActivity : AppCompatActivity() {
             else -> names.dropLast(1).joinToString(", ") + " e " + names.last()
         }
         binding.photoNames.visibility = View.VISIBLE
+    }
+
+    // ------------------------------------------------------------- ligação
+
+    /**
+     * Mostra (ou esconde) o botão de ligar para quem está na foto atual.
+     *
+     * Só aparece quando alguém reconhecido nesta foto tem telefone vinculado
+     * — sem isso o botão apareceria sempre, para qualquer rosto conhecido, sem
+     * ter para onde ligar, que é o mesmo erro que o resto do app evita: um
+     * botão que não funciona é pior que um botão ausente.
+     */
+    private fun showCallButton(photoId: String) {
+        photoCallable = scanner.database.peopleIn(photoId).filter { it.phone != null }
+        binding.photoCallButton.visibility = if (photoCallable.isEmpty()) View.GONE else View.VISIBLE
+    }
+
+    private fun onPhotoCallTapped() {
+        when (photoCallable.size) {
+            0 -> Unit
+            1 -> showCallOptions(photoCallable.first())
+            else -> {
+                // Foto com mais de uma pessoa reconhecida (um casal, os dois
+                // filhos): pergunta para quem antes de mostrar as opções.
+                val names = photoCallable.map { it.name }.toTypedArray()
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.call_people_in_photo)
+                    .setItems(names) { _, which -> showCallOptions(photoCallable[which]) }
+                    .show()
+            }
+        }
+    }
+
+    /**
+     * As mesmas quatro opções de chamada da tela de contatos ([CallOptions]),
+     * para a pessoa escolhida. Reaproveita o [CallDispatcher] que a tela de
+     * contatos usa — ver o KDoc dele para o porquê.
+     */
+    private fun showCallOptions(person: Person) {
+        val contact = contactFor(person)
+        val appCallConfigured =
+            PortaRetratoApp.from(this).authSession.state.value is AuthState.SignedIn
+        val options = CallOptions.forContact(
+            phone = contact.phone,
+            appCallConfigured = appCallConfigured,
+            pairedDeviceId = null,
+            peerOnline = false,
+            alreadyInCall = CallService.activeController != null,
+        )
+        val labels = options.map { option ->
+            if (option.available) option.label else "${option.label} — ${option.explanation}"
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle(person.name)
+            .setItems(labels) { _, which ->
+                val option = options[which]
+                if (option.available) CallDispatcher.dispatch(this, contact, option.method, appCallConfigured)
+            }
+            .show()
+    }
+
+    /**
+     * O telefone vinculado a um rosto já vira um [TrustedContact] no momento
+     * em que é vinculado (ver `PeopleActivity.linkPhoneAndContact`); aqui só
+     * se busca o contato já existente, para reaproveitar o que o usuário já
+     * configurou nele (como atendimento automático) em vez de recriar do zero.
+     */
+    private fun contactFor(person: Person): TrustedContact {
+        val phone = person.phone.orEmpty()
+        val uid = "tel:$phone"
+        return TrustedContactsStore(this).all().firstOrNull { it.uid == uid }
+            ?: TrustedContact(uid = uid, name = person.name, phone = phone, autoAnswerEnabled = false)
     }
 
     /**

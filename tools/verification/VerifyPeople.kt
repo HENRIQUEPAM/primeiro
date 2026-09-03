@@ -116,6 +116,16 @@ fun testNamingCascade() {
     // O nome aparece na foto.
     check("namesIn devolve o nome", db.namesIn("ana1") == listOf("Vó Ana"), "=${db.namesIn("ana1")}")
     check("foto de outra pessoa nao tem nome", db.namesIn("outra1").isEmpty())
+
+    // peopleIn devolve a pessoa inteira — e o telefone, quando houver — para
+    // quem precisa saber se dá para ligar direto da foto (o porta-retrato).
+    check("peopleIn devolve a pessoa", db.peopleIn("ana1").map { it.name } == listOf("Vó Ana"))
+    check("sem telefone vinculado, peopleIn devolve null", db.peopleIn("ana1").first().phone == null)
+    db.linkPhone(result.person!!.id, "5511999998888")
+    check("apos linkPhone, peopleIn ja mostra o telefone",
+        db.peopleIn("ana1").first().phone == "5511999998888",
+        "=${db.peopleIn("ana1").first().phone}")
+    check("foto de outra pessoa continua sem ninguem", db.peopleIn("outra1").isEmpty())
 }
 
 // ---------------------------------------------------------------------------

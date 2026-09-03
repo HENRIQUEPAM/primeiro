@@ -161,9 +161,18 @@ class FaceDatabase(
         get() = linksByPhoto.mapValues { it.value.toSet() }
 
     /** Nomes de quem está na foto, na ordem em que as pessoas foram criadas. */
-    fun namesIn(photoId: String): List<String> {
+    fun namesIn(photoId: String): List<String> = peopleIn(photoId).map { it.name }
+
+    /**
+     * Pessoas reconhecidas na foto, com telefone incluído quando houver.
+     *
+     * Existe separada de [namesIn] porque quem chama do porta-retrato (ver
+     * [com.portaretrato.app.ui.SlideshowActivity]) precisa do telefone, não só
+     * do nome, para saber quem da foto pode ser chamado.
+     */
+    fun peopleIn(photoId: String): List<Person> {
         val ids = linksByPhoto[photoId] ?: return emptyList()
-        return peopleById.values.filter { it.id in ids }.map { it.name }
+        return peopleById.values.filter { it.id in ids }
     }
 
     fun photosOf(personId: String): List<String> =

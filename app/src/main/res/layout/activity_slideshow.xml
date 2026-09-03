@@ -80,6 +80,22 @@
             android:textSize="20sp" />
     </LinearLayout>
 
+    <!-- Ligar para quem está na foto atual. Independente dos controles: fica
+         visível sempre que a foto na tela tiver alguém reconhecido com
+         telefone vinculado, sem precisar tocar a tela primeiro. -->
+    <ImageButton
+        android:id="@+id/photo_call_button"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:background="@drawable/bg_call_button"
+        android:contentDescription="@string/call_people_in_photo"
+        android:elevation="6dp"
+        android:padding="18dp"
+        android:src="@drawable/ic_call"
+        android:visibility="gone" />
+
     <!-- Único controle: um toque na tela mostra este botão, que abre a lista
          de opções (chamar, adicionar fotos, quem está nas fotos, tempo de
          cada foto, privacidade). Some sozinho depois de alguns segundos, como

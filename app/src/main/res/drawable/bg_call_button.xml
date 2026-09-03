@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Círculo verde do botão de ligar sobre a foto. Forma própria, e não um
+     estilo de botão do Material, de propósito: um nome de estilo errado só
+     seria descoberto no build do CI; uma <shape> simples não tem como errar. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/answer_green" />
+</shape>
