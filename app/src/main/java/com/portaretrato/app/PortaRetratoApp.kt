@@ -3,6 +3,7 @@ package com.portaretrato.app
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import com.portaretrato.app.call.AuthSession
 import com.portaretrato.app.people.FaceDatabaseStore
 import com.portaretrato.app.photo.PhotoLibrary
 import com.portaretrato.app.recognition.FaceScanCoordinator
@@ -14,11 +15,13 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Application do Porta Retrato.
  *
- * Dona do [CameraGuard] e do [FaceScanCoordinator]. Os dois são únicos no
- * processo de propósito: dois guardas significariam dois donos possíveis da
- * câmera ao mesmo tempo, e a garantia de exclusividade cairia por terra; dois
- * índices de rostos significariam duas cópias do banco disputando o mesmo
- * arquivo, e a última a gravar apagaria o trabalho da outra.
+ * Dona do [CameraGuard], do [FaceScanCoordinator] e do [AuthSession]. Os três
+ * são únicos no processo de propósito: dois guardas significariam dois donos
+ * possíveis da câmera ao mesmo tempo, e a garantia de exclusividade cairia por
+ * terra; dois índices de rostos significariam duas cópias do banco disputando
+ * o mesmo arquivo, e a última a gravar apagaria o trabalho da outra; e uma
+ * sessão por tela faria a escuta de chamadas recebidas parar toda vez que o
+ * usuário saísse daquela tela específica — ver o KDoc de [AuthSession].
  */
 class PortaRetratoApp : Application() {
 
@@ -59,6 +62,12 @@ class PortaRetratoApp : Application() {
     }
     val faceScanner: FaceScanCoordinator by faceScannerDelegate
 
+    /**
+     * Login anônimo + escuta de chamadas recebidas. Ver o KDoc de [AuthSession]
+     * para o porquê de viver aqui e não numa Activity.
+     */
+    val authSession: AuthSession by lazy { AuthSession(this) }
+
     private fun currentVisibility(): AppVisibility = when {
         startedActivities.get() > 0 -> AppVisibility.FOREGROUND
         mediaForegroundServiceRunning -> AppVisibility.FOREGROUND_SERVICE
@@ -68,6 +77,11 @@ class PortaRetratoApp : Application() {
     override fun onCreate() {
         super.onCreate()
         registerActivityLifecycleCallbacks(VisibilityTracker())
+        // Dispara o login assim que o processo começa, em paralelo com a
+        // LoginActivity inflando a tela — na maioria das vezes a sessão
+        // anônima já existe de uma execução anterior, e resolve antes mesmo de
+        // a tela terminar de aparecer. LoginActivity só observa o resultado.
+        authSession.start()
     }
 
     private inner class VisibilityTracker : ActivityLifecycleCallbacks {

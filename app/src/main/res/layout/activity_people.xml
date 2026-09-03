@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:background="#E8F0FE"
+        android:background="@color/navy_050"
         android:padding="12dp"
         android:textSize="15sp"
         android:visibility="gone" />
@@ -30,7 +30,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:background="#F5F5F5"
+        android:background="@color/navy_050"
         android:gravity="center_horizontal"
         android:orientation="vertical"
         android:padding="16dp"

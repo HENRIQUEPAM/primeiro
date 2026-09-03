@@ -86,7 +86,9 @@ O APK sai em `app/build/outputs/apk/debug/app-debug.apk`.
 ## 4. Testar com dois aparelhos
 
 1. Instale nos dois. Conceda **câmera, microfone e notificações**.
-2. Cada um mostra **Meu código** na tela inicial (o `uid` anônimo).
+2. A tela inicial agora é o porta-retrato. Toque nela → **Menu** →
+   **Chamar alguém**: cada aparelho mostra **Meu código** ali (o `uid`
+   anônimo).
 3. No aparelho A, toque em **Copiar código** e mande para você mesmo.
 4. No aparelho B, cole o código de A em "Código de quem você quer chamar" e
    toque em **Ligar**.

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Porta Retrato Chamadas</string>
+    <!-- Nome mostrado na tela de login — mais curto e amigável que o rótulo
+         técnico do app na gaveta de aplicativos. -->
+    <string name="app_display_name">Porta Retrato</string>
 
     <!-- Tela inicial -->
     <string name="my_code_label">Meu código (passe para quem vai ligar)</string>
@@ -83,6 +86,7 @@
     <string name="no_photos_hint">Adicione fotos da família para elas aparecerem aqui, uma depois da outra.</string>
     <string name="add_photos">Adicionar fotos</string>
     <string name="call_someone">Chamar alguém</string>
+    <string name="menu_button">Menu</string>
     <string name="slideshow_interval">Tempo de cada foto</string>
     <string name="order_shuffle">Ordem aleatória</string>
     <string name="order_sequential">Ordem de sempre</string>

@@ -1,11 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="call_background">#FF101418</color>
+    <!--
+      Paleta base: azul-marinho. É a cor de marca do app inteiro — tema,
+      botões, barra de status, ícone do launcher — e fica concentrada aqui
+      para trocar de tom num lugar só, se um dia for o caso.
+
+      NÃO cobre as cores funcionais logo abaixo (verde/vermelho de chamada):
+      aquelas comunicam "atender" e "desligar" pelo significado universal da
+      cor, não pela marca, e misturar as duas coisas confundiria exatamente o
+      público que mais depende da cor para entender a tela sem ler.
+    -->
+    <color name="navy_900">#FF061529</color>
+    <!-- Tom principal: usado como colorPrimary, então é o que aparece em
+         quase todo botão preenchido do app. Escuro o bastante para texto
+         branco em cima ler bem, sem chegar a preto. -->
+    <color name="navy_800">#FF0D2B52</color>
+    <color name="navy_600">#FF1B3B6F</color>
+    <!-- Tom claro: acento, estado pressionado, texto secundário sobre fundo
+         escuro. -->
+    <color name="navy_400">#FF2C5698</color>
+    <!-- Tingimento bem claro, para superfícies que precisam continuar claras
+         (fundo de cartão, fila de revisão) mas sem sair da família de cor. -->
+    <color name="navy_050">#FFE7ECF6</color>
+
+    <color name="call_background">@color/navy_900</color>
     <color name="call_text">#FFFFFFFF</color>
-    <color name="call_text_secondary">#FFB9C3CC</color>
+    <color name="call_text_secondary">#FFAAB8CE</color>
     <!-- Verde = atender, vermelho = desligar. Sem excecao, sem outras cores
          fortes competindo na tela. -->
     <color name="answer_green">#FF1B8E3D</color>
     <color name="decline_red">#FFC62828</color>
-    <color name="secondary_button">#FF37474F</color>
+    <color name="secondary_button">@color/navy_600</color>
 </resources>

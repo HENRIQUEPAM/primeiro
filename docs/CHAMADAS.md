@@ -56,8 +56,10 @@ Projeto Android completo e buildável. Ver [`COMO-RODAR.md`](../COMO-RODAR.md).
 | `FcmTokenRegistrar.kt` | Registra o token em `users/{uid}/fcmTokens` |
 | `CallNotifications.kt` | Canais + notificação `CallStyle` |
 | `TrustedContactsStore.kt` | Contatos de confiança, local |
+| `AuthSession.kt` | Dona do login + do `IncomingCallWatcher`, vive na `Application` |
 | `ui/CallActivity.kt` | Tela de chamada |
-| `ui/HomeActivity.kt` | Tela inicial, discagem e contatos |
+| `ui/HomeActivity.kt` | Discagem e contatos — alcançada pelo menu do porta-retrato |
+| `ui/LoginActivity.kt` (em `ui/`) | Tela inicial de verdade: aguarda o login e segue para o porta-retrato |
 
 **Infra:** `firebase/firestore.rules`, `firebase/firestore.indexes.json`,
 `firebase/functions/index.js`, layouts, temas e strings em português.

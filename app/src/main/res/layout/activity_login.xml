@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tela inicial: o processo acabou de começar, e a sessão do aparelho
+  (login anônimo + escuta de chamadas) está resolvendo ao fundo — ver
+  AuthSession. Esta tela só existe para cobrir esse instante; assim que a
+  sessão resolve (ou estoura o prazo de segurança), ela some sozinha e dá lugar
+  ao porta-retrato. Nenhum toque é exigido aqui.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/navy_900"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_display_name"
+        android:textColor="#FFFFFFFF"
+        android:textSize="36sp"
+        android:textStyle="bold" />
+
+    <ProgressBar
+        android:id="@+id/login_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:indeterminateTint="#FFFFFFFF" />
+
+    <TextView
+        android:id="@+id/login_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/signing_in"
+        android:textColor="@color/call_text_secondary"
+        android:textSize="16sp" />
+
+</LinearLayout>

@@ -31,11 +31,11 @@
         android:theme="@style/Theme.PortaRetratoChamadas">
 
         <!--
-            O porta-retrato e a tela inicial. Contatos, privacidade e ajustes
-            ficam a um toque dela.
+            Tela inicial de verdade: login (silencioso, sem toque nenhum) e,
+            em seguida, o porta-retrato. Ver o KDoc de LoginActivity.
         -->
         <activity
-            android:name="com.portaretrato.app.ui.SlideshowActivity"
+            android:name="com.portaretrato.app.ui.LoginActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:screenOrientation="fullSensor">
@@ -44,6 +44,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            O porta-retrato propriamente dito. Não exportada: só é alcançada a
+            partir da LoginActivity, dentro do próprio app — nenhum outro
+            aplicativo tem por que abri-la diretamente. Contatos, privacidade e
+            ajustes ficam atrás do botão de menu, a um toque dela.
+        -->
+        <activity
+            android:name="com.portaretrato.app.ui.SlideshowActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:screenOrientation="fullSensor" />
 
         <activity
             android:name="com.portaretrato.app.call.ui.HomeActivity"

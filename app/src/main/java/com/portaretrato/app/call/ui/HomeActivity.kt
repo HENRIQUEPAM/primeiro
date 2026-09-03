@@ -1,31 +1,33 @@
 package com.portaretrato.app.call.ui
 
-import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.firebase.auth.FirebaseAuth
+import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.R
+import com.portaretrato.app.call.AuthState
 import com.portaretrato.app.call.CallMethod
 import com.portaretrato.app.call.CallOptions
 import com.portaretrato.app.call.CallService
-import com.portaretrato.app.call.FcmTokenRegistrar
-import com.portaretrato.app.call.IncomingCallWatcher
 import com.portaretrato.app.call.TrustedContact
 import com.portaretrato.app.call.TrustedContactsStore
 import com.portaretrato.app.call.WhatsAppFallback
 import com.portaretrato.app.databinding.ActivityHomeBinding
 import com.portaretrato.app.ui.PrivacyActivity
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 /**
- * Tela inicial: a lista de quem se pode chamar.
+ * Tela de quem se pode chamar. Alcançada a partir do menu do porta-retrato —
+ * não é mais a tela inicial do app, ver [com.portaretrato.app.ui.LoginActivity].
  *
  * ## O caminho que funciona hoje
  *
@@ -37,20 +39,23 @@ import com.portaretrato.app.ui.PrivacyActivity
  * Isso não é um remendo. A Seção 7.4 da especificação determina que o WhatsApp
  * seja preservado ao lado da chamada nativa, nunca substituído — aqui ele
  * apenas assume a frente enquanto o resto não está de pé.
+ *
+ * ## Login
+ *
+ * Quem loga é o [com.portaretrato.app.call.AuthSession] da Application, desde
+ * antes de qualquer tela abrir. Esta Activity só observa o resultado — não
+ * chama `signInAnonymously` nem controla a escuta de chamadas recebidas, que
+ * fica de pé pelo tempo de vida do processo, e não apenas enquanto esta tela
+ * está aberta.
  */
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHomeBinding
     private lateinit var contacts: TrustedContactsStore
     private lateinit var adapter: ContactAdapter
-    private val watcher by lazy { IncomingCallWatcher(applicationContext) }
 
     /** `true` quando o Firebase autenticou; gateia a opção de chamada no app. */
     private var appCallConfigured = false
-
-    private val requestPermissions = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { /* reavaliado no momento da chamada, pelo CameraGuard */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,8 +72,11 @@ class HomeActivity : AppCompatActivity() {
             startActivity(Intent(this, PrivacyActivity::class.java))
         }
 
-        requestStartupPermissions()
-        signIn()
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                PortaRetratoApp.from(this@HomeActivity).authSession.state.collectLatest(::onAuthState)
+            }
+        }
     }
 
     override fun onResume() {
@@ -127,29 +135,31 @@ class HomeActivity : AppCompatActivity() {
 
     // --------------------------------------------------------------- estado
 
-    private fun signIn() {
-        val auth = FirebaseAuth.getInstance()
-        auth.currentUser?.let { return onSignedIn(it.uid) }
+    private fun onAuthState(state: AuthState) {
+        when (state) {
+            is AuthState.SignedIn -> {
+                appCallConfigured = true
+                binding.statusBanner.visibility = View.GONE
+                binding.myCode.text = state.uid
+            }
 
-        auth.signInAnonymously()
-            .addOnSuccessListener { result -> result.user?.uid?.let(::onSignedIn) }
-            .addOnFailureListener {
-                // Caminho esperado com google-services.json de placeholder.
-                // O app continua útil: os botões de WhatsApp e telefone
-                // funcionam sem Firebase nenhum.
+            AuthState.Failed -> {
+                // Caminho esperado com google-services.json de placeholder, ou
+                // sem "Anônimo" ativado no console. O app continua útil: os
+                // botões de WhatsApp e telefone funcionam sem Firebase nenhum.
                 appCallConfigured = false
                 binding.statusBanner.visibility = View.VISIBLE
                 binding.statusBanner.setText(R.string.sign_in_failed_hint)
-                refresh()
             }
-    }
 
-    private fun onSignedIn(uid: String) {
-        appCallConfigured = true
-        binding.statusBanner.visibility = View.GONE
-        binding.myCode.text = uid
-        watcher.start(uid)
-        FcmTokenRegistrar().registerCurrent(uid)
+            AuthState.SigningIn -> {
+                // A LoginActivity já esperou por isto antes de abrir o app;
+                // chegar aqui ainda "SigningIn" só acontece se o prazo de
+                // segurança dela estourou. Gateia a chamada pelo app sem
+                // mostrar o aviso de falha — ainda pode resolver sozinho.
+                appCallConfigured = false
+            }
+        }
         refresh()
     }
 
@@ -231,22 +241,5 @@ class HomeActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun requestStartupPermissions() {
-        val permissions = mutableListOf<String>()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions += Manifest.permission.POST_NOTIFICATIONS
-        }
-        // READ_CONTACTS habilita a videochamada direta do WhatsApp; sem ela o
-        // app cai para a conversa, que funciona igual. Câmera e microfone NÃO
-        // são pedidos aqui: só na primeira chamada pelo app, com justificativa.
-        permissions += Manifest.permission.READ_CONTACTS
-        if (permissions.isNotEmpty()) requestPermissions.launch(permissions.toTypedArray())
-    }
-
     private fun toast(resId: Int) = Toast.makeText(this, resId, Toast.LENGTH_LONG).show()
-
-    override fun onDestroy() {
-        watcher.stop()
-        super.onDestroy()
-    }
 }

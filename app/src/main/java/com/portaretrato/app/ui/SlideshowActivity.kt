@@ -34,8 +34,10 @@ import kotlinx.coroutines.withContext
 /**
  * O porta-retrato em si: fotos em tela cheia, trocando sozinhas.
  *
- * É a tela inicial do app — o aparelho fica exibindo fotos, e tudo o mais
- * (contatos, adicionar fotos, privacidade) está a um toque dela.
+ * É para onde [LoginActivity] leva assim que a sessão do aparelho resolve — a
+ * tela em que o aparelho passa o dia inteiro. Tudo o mais (contatos, adicionar
+ * fotos, quem está nas fotos, privacidade) está atrás de um único botão, que
+ * só aparece quando alguém toca a tela.
  *
  * ## Decisões que o formato exige
  *
@@ -48,9 +50,9 @@ import kotlinx.coroutines.withContext
  *   parecer lento.
  * - **Transição por fade entre dois ImageViews.** Trocar o bitmap de um único
  *   ImageView pisca; com dois, a foto nova aparece por cima da antiga.
- * - **Toque em qualquer lugar mostra os controles**, que somem sozinhos depois
- *   de 8 segundos. O idoso não precisa achar um botão escondido, e o painel
- *   não fica atrapalhando as fotos.
+ * - **Toque em qualquer lugar mostra um único botão de menu**, que some
+ *   sozinho depois de 8 segundos. O idoso não precisa escolher entre vários
+ *   botões, e o menu não fica atrapalhando as fotos.
  */
 class SlideshowActivity : AppCompatActivity() {
 
@@ -99,18 +101,8 @@ class SlideshowActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         binding.root.setOnClickListener { toggleControls() }
-        binding.addPhotosButton.setOnClickListener { pickPhotos() }
-        binding.callButton.setOnClickListener {
-            startActivity(Intent(this, HomeActivity::class.java))
-        }
-        binding.privacyButton.setOnClickListener {
-            startActivity(Intent(this, PrivacyActivity::class.java))
-        }
-        binding.settingsButton.setOnClickListener { showSettingsDialog() }
+        binding.menuButton.setOnClickListener { showMenu() }
         binding.emptyAddButton.setOnClickListener { pickPhotos() }
-        binding.peopleButton.setOnClickListener {
-            startActivity(Intent(this, PeopleActivity::class.java))
-        }
     }
 
     override fun onStart() {
@@ -243,19 +235,14 @@ class SlideshowActivity : AppCompatActivity() {
     // -------------------------------------------------------------- controles
 
     private fun toggleControls() {
-        if (binding.controls.visibility == View.VISIBLE) hideControls() else showControls()
+        if (binding.menuButton.visibility == View.VISIBLE) hideControls() else showControls()
     }
 
     private fun showControls() {
-        binding.controls.visibility = View.VISIBLE
-        // Os controles ocupam a mesma borda inferior que a legenda: deixar as
-        // duas visíveis sobreporia o nome aos botões.
+        binding.menuButton.visibility = View.VISIBLE
+        // O botão ocupa a mesma borda inferior que a legenda: deixar as duas
+        // visíveis sobreporia o nome ao botão.
         binding.photoNames.visibility = View.GONE
-        binding.photoCount.text = resources.getQuantityString(
-            R.plurals.photo_count,
-            library.count(),
-            library.count(),
-        )
         hideControlsJob?.cancel()
         hideControlsJob = lifecycleScope.launch {
             delay(CONTROLS_TIMEOUT_MS)
@@ -265,9 +252,39 @@ class SlideshowActivity : AppCompatActivity() {
 
     private fun hideControls() {
         hideControlsJob?.cancel()
-        binding.controls.visibility = View.GONE
+        binding.menuButton.visibility = View.GONE
         engine.current?.let { showNames(it) }
         goImmersive()
+    }
+
+    /**
+     * O menu único: chamar alguém, adicionar fotos, quem está nas fotos, tempo
+     * de cada foto e privacidade — tudo atrás de um só botão, para a tela
+     * principal do porta-retrato não competir com cinco botões pela atenção de
+     * quem só quer ver as fotos passando.
+     */
+    private fun showMenu() {
+        val options = arrayOf(
+            getString(R.string.call_someone),
+            getString(R.string.add_photos),
+            getString(R.string.who_is_in_photos),
+            getString(R.string.slideshow_interval),
+            getString(R.string.privacy_title),
+        )
+        AlertDialog.Builder(this)
+            .setTitle(
+                resources.getQuantityString(R.plurals.photo_count, library.count(), library.count()),
+            )
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> startActivity(Intent(this, HomeActivity::class.java))
+                    1 -> pickPhotos()
+                    2 -> startActivity(Intent(this, PeopleActivity::class.java))
+                    3 -> showSettingsDialog()
+                    4 -> startActivity(Intent(this, PrivacyActivity::class.java))
+                }
+            }
+            .show()
     }
 
     private fun pickPhotos() {
