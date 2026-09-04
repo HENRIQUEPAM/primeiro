@@ -8,8 +8,21 @@
       o Android mostrava o android:label do manifesto ali em cima, duplicando
       o título que a tela já tem embaixo. Desligar também dá controle total
       sobre a cor da barra de status, que é a única "barra" que sobra.
+
+      Light, não DayNight: cartões como navy_050/amber_banner_bg são cores
+      FIXAS, claras, escritas à mão — não pares dia/claro e noite/escuro.
+      Com DayNight, num aparelho em modo escuro do sistema o Material3 troca
+      sozinho a cor de texto padrão (android:textColorPrimary, usada por todo
+      TextView sem textColor explícito — scan_status, review_remaining,
+      títulos de tela) para a variante clara pensada para fundo escuro, que
+      cai em cima dos nossos fundos claros e fica ilegível (texto cinza-claro
+      sobre cartão quase branco). O app já era visualmente fixo — mesma
+      aparência em qualquer aparelho, de propósito, para não confundir quem
+      usa — só o texto padrão não sabia disso. Light garante que o Material3
+      sempre resolva as cores padrão como se o sistema estivesse em modo
+      claro, não importa a configuração do aparelho.
     -->
-    <style name="Theme.PortaRetratoChamadas" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.PortaRetratoChamadas" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">@color/navy_800</item>
         <item name="colorOnPrimary">#FFFFFFFF</item>
         <item name="colorPrimaryContainer">@color/navy_600</item>

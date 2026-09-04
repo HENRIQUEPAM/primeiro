@@ -40,17 +40,21 @@ jobs:
       #  3. placeholder — só para o build passar num fork sem Firebase nenhum.
       #     O APK instala e abre, mas não autentica nem sinaliza.
       - name: Preparar google-services.json
+        id: google_services
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
             echo "::notice::Usando google-services.json do segredo do repositório."
+            echo "source=real" >> "$GITHUB_OUTPUT"
           elif [ -s app/google-services.json ]; then
             echo "::notice::Usando o app/google-services.json versionado."
+            echo "source=real" >> "$GITHUB_OUTPUT"
           else
             cp .github/google-services.placeholder.json app/google-services.json
             echo "::warning::Sem google-services.json real. APK gerado com Firebase de mentira: instala e abre, mas não faz chamada."
+            echo "source=placeholder" >> "$GITHUB_OUTPUT"
           fi
 
           # Falha cedo e com mensagem clara se o pacote não bater — o sintoma
@@ -92,23 +96,45 @@ jobs:
       - name: Publicar Release para instalacao no celular
         env:
           GH_TOKEN: ${{ github.token }}
+          FIREBASE_SOURCE: ${{ steps.google_services.outputs.source }}
         run: |
-          NOTES=$(cat <<'EOM'
+          # A nota de Firebase muda de verdade conforme o que a etapa anterior
+          # de fato usou — texto fixo aqui já mentiu uma vez (dizia sempre
+          # "placeholder", mesmo quando o google-services.json real estava
+          # sendo usado desde sempre) e ninguém percebeu porque nada quebrava,
+          # só confundia quem lia o Release.
+          if [ "$FIREBASE_SOURCE" = "placeholder" ]; then
+            FIREBASE_NOTE=$(cat <<'EOM'
+          Compilado com um `google-services.json` de placeholder, entao **NAO
+          autentica e NAO faz chamada pelo proprio app** — na tela de
+          contatos aparece "Falha ao entrar". Isso e esperado, nao e defeito:
+          cadastre o segredo GOOGLE_SERVICES_JSON no repositorio (ver
+          docs/FIREBASE.md).
+          EOM
+            )
+          else
+            FIREBASE_NOTE=$(cat <<'EOM'
+          Compilado com o `google-services.json` real do projeto Firebase.
+          Se a tela de contatos ainda mostrar "Falha ao entrar", falta uma
+          configuracao no console do Firebase (Etapa 2 de docs/FIREBASE.md:
+          ativar o login Anonimo) — nao e algo que um novo build resolve
+          sozinho, e feito uma vez so, pelo navegador.
+          EOM
+            )
+          fi
+
+          NOTES=$(cat <<EOM
           APK de teste do Porta Retrato, para instalar direto no celular.
 
           **Como instalar:** abra este link no navegador do celular, toque em
-          `porta-retrato.apk`, e confirme. Se o Android avisar sobre "app de
+          \`porta-retrato.apk\`, e confirme. Se o Android avisar sobre "app de
           fonte desconhecida", toque em Configuracoes e permita a instalacao
           para o navegador que voce esta usando.
 
           Requisitos: Android 8.0 ou superior.
 
           **O que este APK faz hoje:** abre, mostra as telas, pede as
-          permissoes e a tela de privacidade da camera funciona. Ele foi
-          compilado com um `google-services.json` de placeholder, entao **NAO
-          autentica e NAO faz chamada** — na tela inicial aparece "Falha ao
-          entrar". Isso e esperado, nao e defeito. Para o APK funcional, e
-          preciso cadastrar o segredo GOOGLE_SERVICES_JSON no repositorio.
+          permissoes e a tela de privacidade da camera funciona. $FIREBASE_NOTE
 
           Este app instala LADO A LADO com o Porta Retrato ja existente
           (applicationId diferente), sem substituir nada.
