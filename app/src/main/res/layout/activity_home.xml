@@ -55,6 +55,14 @@
         android:text="@string/privacy_title"
         android:textSize="15sp" />
 
+    <Button
+        android:id="@+id/advanced_features_button"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/advanced_features"
+        android:textSize="15sp" />
+
     <!-- Pareamento manual: cada aparelho mostra o próprio código; quem quer
          ser chamado pelo app cola esse código no campo "Código do aparelho"
          de "Adicionar contato" no OUTRO aparelho. Sem isto visível e fácil de

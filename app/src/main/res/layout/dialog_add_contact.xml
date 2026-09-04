@@ -32,18 +32,29 @@
         android:inputType="text"
         android:autofillHints="username" />
 
-    <CheckBox
-        android:id="@+id/contact_auto_answer"
+    <!-- Só visível quando "Recursos avançados" já ligou o interruptor mestre
+         (ver AdminActivity/AutoAnswerSettingsStore) — sem isso, nenhum
+         contato deveria sequer ver a opção de atender sozinho. -->
+    <LinearLayout
+        android:id="@+id/auto_answer_section"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/auto_answer_checkbox" />
+        android:orientation="vertical"
+        android:visibility="gone">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/auto_answer_warning"
-        android:textSize="13sp" />
+        <CheckBox
+            android:id="@+id/contact_auto_answer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/auto_answer_checkbox" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/auto_answer_warning"
+            android:textSize="13sp" />
+    </LinearLayout>
 
 </LinearLayout>

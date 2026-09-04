@@ -164,30 +164,30 @@ class AutoAnswerPolicy(
     companion object {
 
         /**
-         * **Atendimento automático: DESLIGADO por decisão do dono do produto.**
+         * **Valor de fábrica: desligado.** Abrir câmera e microfone da casa de
+         * alguém sem nenhuma interação humana não é uma decisão que o código
+         * deveria tomar sozinho por padrão.
          *
-         * O recurso não consta da especificação v3.1, que descreve campainha e
-         * ação "Atender". Como ele abre câmera e microfone da casa de alguém sem
-         * nenhuma interação humana, a decisão não é de quem escreve o código.
+         * Isto NÃO é mais a chave-mestra única — desde que o dono do produto
+         * pediu o recurso de volta ("babá eletrônica"), quem decide em tempo
+         * de execução é [AutoAnswerSettingsStore], atrás da senha de
+         * [com.portaretrato.app.admin.AdminAccess]
+         * ([com.portaretrato.app.admin.ui.AdminActivity]). Este `const val`
+         * agora serve só de dois jeitos:
          *
-         * O código fica no projeto, testado, em vez de ser apagado: ele é a
-         * única razão técnica para o porta-retrato ter chamada própria em vez de
-         * continuar delegando ao WhatsApp — nenhum app de terceiro pode ser
-         * atendido por outro. Apagar hoje significaria reescrever depois, e a
-         * lógica delicada (janela de horário, convite duplicado, nome vindo só
-         * da agenda local) se perderia junto.
+         *  1. o valor que [AutoAnswerSettingsStore.isEnabled] devolve **antes**
+         *     de alguém jamais abrir "Recursos avançados" (nenhum aparelho
+         *     novo nasce com isto ligado, mesmo sem querer);
+         *  2. o padrão do parâmetro `featureEnabled` abaixo, para quem
+         *     constrói um [AutoAnswerPolicy] sem passar nada — o caso de teste,
+         *     e qualquer chamador futuro que esqueça de pensar nisso.
          *
-         * **Para religar**, três coisas, nesta ordem:
-         *  1. trocar esta constante para `true`;
-         *  2. criar a tela que deixa o dono marcar contato por contato — hoje
-         *     `TrustedContactsStore.setAutoAnswer` existe e nenhuma tela o
-         *     chama, então nenhum contato consegue ficar marcado;
-         *  3. decidir a janela de horário (`quietHoursStart`/`quietHoursEnd`),
-         *     hoje nula, isto é, sem restrição.
-         *
-         * Enquanto isto for `false`, `decide` devolve `Ring` para qualquer
-         * entrada — inclusive para um contato com `autoAnswerEnabled = true`
-         * gravado em disco. A suíte varre todas as combinações para garantir.
+         * A janela de horário (`quietHoursStart`/`quietHoursEnd`) continua nula
+         * — sem restrição — porque ainda não tem tela para o dono escolher uma.
+         * Enquanto isto for `false` e [AutoAnswerSettingsStore] nunca tiver
+         * sido tocado, `decide` devolve `Ring` para qualquer entrada — inclusive
+         * para um contato com `autoAnswerEnabled = true` gravado em disco. A
+         * suíte varre todas as combinações para garantir.
          */
         const val FEATURE_ENABLED = false
 

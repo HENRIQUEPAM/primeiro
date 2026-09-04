@@ -32,6 +32,7 @@ PEOPLE="app/src/main/java/com/portaretrato/app/people"
 PHOTO="app/src/main/java/com/portaretrato/app/photo"
 CALL="app/src/main/java/com/portaretrato/app/call"
 SEC="app/src/main/java/com/portaretrato/app/security"
+ADMIN="app/src/main/java/com/portaretrato/app/admin"
 
 # Fontes que dependem de bibliotecas reais (WebRTC, Firestore, Firebase) e por
 # isso nao entram em nenhuma compilacao aqui.
@@ -82,12 +83,13 @@ run_suite VerifySpec \
     $CALL/PhoneNumbers.kt $CALL/CallOptions.kt $CALL/PairingProtocol.kt \
     $CALL/SdpSigner.kt
 
-# Politica de acesso a camera e criptografia de campo. Sao os fontes de
-# `security/` que NAO dependem de Android (CameraGuard, CameraNotice e
-# KeystoreKeyProvider dependem, e ficam de fora).
+# Politica de acesso a camera, criptografia de campo, e hash da senha de
+# administrador. Sao os fontes de `security/`/`admin/` que NAO dependem de
+# Android (CameraGuard, CameraNotice, KeystoreKeyProvider e AdminAccess
+# dependem, e ficam de fora).
 run_suite VerifySecurity \
     $SEC/CameraAccessPolicy.kt $SEC/CameraAuditLog.kt $SEC/PermissionFlow.kt \
-    $SEC/FieldCrypto.kt
+    $SEC/FieldCrypto.kt $ADMIN/PasswordHashing.kt
 
 echo "=========================================================="
 python3 tools/verification/validate_project.py || failed=$((failed + 1))

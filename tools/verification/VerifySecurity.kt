@@ -7,6 +7,7 @@ import com.portaretrato.app.security.CameraDenialReason
 import com.portaretrato.app.security.CameraPurpose
 import com.portaretrato.app.security.PermissionFlow
 import com.portaretrato.app.security.PermissionStep
+import com.portaretrato.app.admin.PasswordHashing
 import com.portaretrato.app.security.FieldCrypto
 import com.portaretrato.app.security.SensitivePermission
 import javax.crypto.KeyGenerator
@@ -349,6 +350,43 @@ fun testFieldCrypto() {
     check("dado nao cifrado devolve null", FieldCrypto.decrypt(embedding, key) == null)
 }
 
+// ---------------------------------------------------------------------------
+// 10. Senha de administrador ("Recursos avancados" / babá eletrônica)
+// ---------------------------------------------------------------------------
+fun testPasswordHashing() {
+    println("[10] Hash da senha de administrador")
+
+    val stored = PasswordHashing.hash("abelha-123")
+    check("senha certa bate", PasswordHashing.matches("abelha-123", stored))
+    check("senha errada nao bate", !PasswordHashing.matches("abelha-124", stored))
+    check("senha vazia nao bate com hash de senha nao-vazia", !PasswordHashing.matches("", stored))
+    check(
+        "sensivel a maiusculas/minusculas",
+        !PasswordHashing.matches("ABELHA-123", stored),
+    )
+
+    // O hash em si nunca pode ser a senha em claro, nem conter ela.
+    check(
+        "o payload gravado nao contem a senha em texto puro",
+        !String(stored, Charsets.ISO_8859_1).contains("abelha-123"),
+    )
+
+    // Salt novo a cada hash: duas chamadas com a MESMA senha produzem
+    // payloads DIFERENTES (senão, dois administradores com a mesma senha
+    // teriam o mesmo hash gravado, um vazamento por si só).
+    val storedAgain = PasswordHashing.hash("abelha-123")
+    check("dois hashes da mesma senha sao diferentes (salt novo)", !stored.contentEquals(storedAgain))
+    check("mas os dois continuam validando a senha certa", PasswordHashing.matches("abelha-123", storedAgain))
+
+    // Robustez: payload corrompido ou truncado nunca lança, so devolve false.
+    check("payload vazio nao bate com nada", !PasswordHashing.matches("qualquer", ByteArray(0)))
+    check("payload truncado nao bate com nada", !PasswordHashing.matches("qualquer", ByteArray(5)))
+    check(
+        "versao desconhecida nao bate",
+        !PasswordHashing.matches("abelha-123", stored.copyOf().also { it[0] = 99 }),
+    )
+}
+
 fun main() {
     println("=== Verificacao da seguranca ===\n")
     testPermissionIsMandatory(); println()
@@ -360,6 +398,7 @@ fun main() {
     testAuditLog(); println()
     testPermissionFlow(); println()
     testFieldCrypto(); println()
+    testPasswordHashing(); println()
     if (failures == 0) println("TODOS OS TESTES PASSARAM")
     else { println("$failures TESTE(S) FALHARAM"); kotlin.system.exitProcess(1) }
 }

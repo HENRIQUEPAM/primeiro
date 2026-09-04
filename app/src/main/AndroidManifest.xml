@@ -89,6 +89,14 @@
             android:exported="false"
             android:label="@string/people_title" />
 
+        <!-- Senha de administrador + interruptor mestre do atendimento
+             automático. Não exportada e sem label próprio na gaveta de
+             apps: só é alcançada a partir de HomeActivity, de propósito. -->
+        <activity
+            android:name="com.portaretrato.app.admin.ui.AdminActivity"
+            android:exported="false"
+            android:label="@string/advanced_features" />
+
         <service
             android:name="com.portaretrato.app.call.CallService"
             android:exported="false"

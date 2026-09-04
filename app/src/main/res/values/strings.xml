@@ -28,6 +28,23 @@
     <string name="sign_in_failed">Falha ao entrar</string>
     <string name="sign_in_failed_hint">Verifique o google-services.json e ative o login Anônimo no Firebase.</string>
 
+    <!-- Recursos avançados (senha de administrador) -->
+    <string name="advanced_features">Recursos avançados</string>
+    <string name="admin_intro">Esta senha é só sua. Ela libera recursos que exigem cuidado extra, como a câmera e o microfone abrindo sozinhos numa chamada.</string>
+    <string name="admin_create_intro">Ainda não existe uma senha aqui. Crie uma — vai pedir de novo toda vez que você voltar nesta tela.</string>
+    <string name="admin_password_hint">Senha</string>
+    <string name="admin_confirm_password_hint">Confirme a senha</string>
+    <string name="admin_create_button">Criar senha</string>
+    <string name="admin_enter_button">Entrar</string>
+    <string name="admin_wrong_password">Senha incorreta.</string>
+    <string name="admin_passwords_dont_match">As duas senhas digitadas são diferentes.</string>
+    <string name="admin_password_too_short">Escreva pelo menos 4 caracteres.</string>
+    <string name="admin_auto_answer_switch">Atendimento automático (babá eletrônica)</string>
+    <string name="admin_auto_answer_explanation">Ligado, você pode marcar contatos de confiança (na tela de contatos) para que a câmera e o microfone abram sozinhos, sem ninguém tocar em nada, quando eles ligarem. Desligado aqui, nenhum contato atende sozinho, mesmo que já esteja marcado.</string>
+    <string name="admin_change_password_button">Trocar senha</string>
+    <string name="admin_new_password_set">Senha salva.</string>
+    <string name="admin_no_recovery">Se esquecer, não tem como recuperar — só limpar os dados do app e criar outra.</string>
+
     <!-- Chamada -->
     <string name="incoming_call_title">Chamada recebida</string>
     <string name="ongoing_call_title">Chamada em andamento</string>

@@ -14,7 +14,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.portaretrato.app.PortaRetratoApp
 import com.portaretrato.app.R
+import com.portaretrato.app.admin.ui.AdminActivity
 import com.portaretrato.app.call.AuthState
+import com.portaretrato.app.call.AutoAnswerSettingsStore
 import com.portaretrato.app.call.CallDispatcher
 import com.portaretrato.app.call.CallMethod
 import com.portaretrato.app.call.CallOptions
@@ -53,6 +55,7 @@ class HomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHomeBinding
     private lateinit var contacts: TrustedContactsStore
+    private lateinit var autoAnswerSettings: AutoAnswerSettingsStore
     private lateinit var adapter: ContactAdapter
 
     /** `true` quando o Firebase autenticou; gateia a opção de chamada no app. */
@@ -63,6 +66,7 @@ class HomeActivity : AppCompatActivity() {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         contacts = TrustedContactsStore(this)
+        autoAnswerSettings = AutoAnswerSettingsStore(this)
 
         adapter = ContactAdapter(onCall = ::startCall, onLongPress = ::showContactMenu)
         binding.contactsList.layoutManager = LinearLayoutManager(this)
@@ -71,6 +75,9 @@ class HomeActivity : AppCompatActivity() {
         binding.addContactButton.setOnClickListener { showAddContactDialog() }
         binding.privacyButton.setOnClickListener {
             startActivity(Intent(this, PrivacyActivity::class.java))
+        }
+        binding.advancedFeaturesButton.setOnClickListener {
+            startActivity(Intent(this, AdminActivity::class.java))
         }
         binding.copyCodeButton.setOnClickListener { copyMyCode() }
 
@@ -160,12 +167,20 @@ class HomeActivity : AppCompatActivity() {
         val nameField = view.findViewById<android.widget.EditText>(R.id.contact_name)
         val phoneField = view.findViewById<android.widget.EditText>(R.id.contact_phone)
         val codeField = view.findViewById<android.widget.EditText>(R.id.contact_code)
+        val autoAnswerSection = view.findViewById<View>(R.id.auto_answer_section)
+        val autoAnswerCheckbox = view.findViewById<android.widget.CheckBox>(R.id.contact_auto_answer)
 
         existing?.let {
             nameField.setText(it.name)
             phoneField.setText(it.phone.orEmpty())
             codeField.setText(it.uid)
+            autoAnswerCheckbox.isChecked = it.autoAnswerEnabled
         }
+        // Ver AdminActivity: sem o interruptor mestre ligado (atrás da senha
+        // de administrador), ninguém deveria nem ver a opção de atender
+        // sozinho — ela continua marcada no disco se já estava, só some da
+        // tela até o interruptor voltar a ligar.
+        autoAnswerSection.visibility = if (autoAnswerSettings.isEnabled()) View.VISIBLE else View.GONE
 
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.add_contact)
@@ -186,7 +201,14 @@ class HomeActivity : AppCompatActivity() {
                         uid = code.ifBlank { existing?.uid ?: "${TrustedContact.PHONE_UID_PREFIX}$phone" },
                         name = name,
                         phone = phone.ifBlank { null },
-                        autoAnswerEnabled = existing?.autoAnswerEnabled ?: false,
+                        // Com a seção escondida, o valor do checkbox não foi
+                        // tocado pelo usuário — preserva o que já estava
+                        // gravado em vez de assumir false e apagar a marcação.
+                        autoAnswerEnabled = if (autoAnswerSettings.isEnabled()) {
+                            autoAnswerCheckbox.isChecked
+                        } else {
+                            existing?.autoAnswerEnabled ?: false
+                        },
                     ),
                 )
                 refresh()
@@ -196,15 +218,28 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun showContactMenu(contact: TrustedContact) {
+        val options = mutableListOf(getString(R.string.edit_contact), getString(R.string.remove_contact))
+        // Atalho para quem já está na lista: liga/desliga sem abrir o
+        // formulário inteiro. Só para contato com código de aparelho — sem
+        // isso não há como o app dele receber a chamada de qualquer forma.
+        val showAutoAnswerToggle = autoAnswerSettings.isEnabled() && contact.hasDeviceCode
+        if (showAutoAnswerToggle) {
+            options += getString(
+                if (contact.autoAnswerEnabled) R.string.disable_auto_answer else R.string.enable_auto_answer,
+            )
+        }
+
         MaterialAlertDialogBuilder(this)
             .setTitle(contact.name)
-            .setItems(
-                arrayOf(getString(R.string.edit_contact), getString(R.string.remove_contact)),
-            ) { _, which ->
+            .setItems(options.toTypedArray()) { _, which ->
                 when (which) {
                     0 -> showAddContactDialog(contact)
                     1 -> {
                         contacts.remove(contact.uid)
+                        refresh()
+                    }
+                    2 -> {
+                        contacts.setAutoAnswer(contact.uid, !contact.autoAnswerEnabled)
                         refresh()
                     }
                 }

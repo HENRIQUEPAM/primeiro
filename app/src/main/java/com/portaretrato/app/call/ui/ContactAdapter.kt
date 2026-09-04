@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.portaretrato.app.R
+import com.portaretrato.app.call.AutoAnswerSettingsStore
 import com.portaretrato.app.call.CallMethod
 import com.portaretrato.app.call.CallOption
 import com.portaretrato.app.call.CallOptions
@@ -47,7 +48,18 @@ class ContactAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(card: ContactCard) {
-            binding.contactName.text = card.contact.name
+            // Só mostra o rótulo quando o atendimento automático realmente
+            // vai acontecer: contato marcado E o interruptor mestre ligado
+            // (ver AdminActivity). Mostrar "atende sozinho" com o mestre
+            // desligado seria mentira — a marcação continua salva, mas
+            // AutoAnswerPolicy.decide() nem chega a olhar para ela.
+            val autoAnswers = card.contact.autoAnswerEnabled &&
+                AutoAnswerSettingsStore(itemView.context).isEnabled()
+            binding.contactName.text = if (autoAnswers) {
+                card.contact.name + itemView.context.getString(R.string.auto_answer_on)
+            } else {
+                card.contact.name
+            }
 
             val best = CallOptions.best(card.options)
             binding.root.setOnClickListener {
