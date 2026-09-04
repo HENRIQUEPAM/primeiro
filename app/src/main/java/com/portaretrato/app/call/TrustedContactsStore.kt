@@ -39,6 +39,26 @@ class TrustedContactsStore(context: Context) {
 
     fun remove(uid: String) = save(all().filterNot { it.uid == uid })
 
+    /**
+     * Encontra o contato de confiança pelo telefone, não pelo uid.
+     *
+     * Existe porque a mesma pessoa pode acabar com dois registros: um criado
+     * em "Adicionar contato" (com código de aparelho opcional) e outro criado
+     * ao vincular um telefone a um rosto reconhecido em PeopleActivity, que só
+     * conhece o telefone e por isso usa um uid sintético (`TrustedContact.
+     * PHONE_UID_PREFIX` + telefone). Comparar por uid faria o botão de ligar
+     * do porta-retrato nunca encontrar o contato com código de aparelho de
+     * alguém que também foi reconhecido numa foto — perdendo a opção de
+     * chamada pelo app exatamente para quem ela mais importa. Quando há mais
+     * de um registro com o mesmo telefone, prefere o que tem código de
+     * aparelho.
+     */
+    fun findByPhone(phone: String): TrustedContact? {
+        val normalized = PhoneNumbers.normalize(phone) ?: return null
+        val matches = all().filter { it.phone?.let(PhoneNumbers::normalize) == normalized }
+        return matches.firstOrNull { it.hasDeviceCode } ?: matches.firstOrNull()
+    }
+
     fun setAutoAnswer(uid: String, enabled: Boolean) {
         save(all().map { if (it.uid == uid) it.copy(autoAnswerEnabled = enabled) else it })
     }

@@ -9,7 +9,6 @@
     <string name="my_code_label">Meu código (passe para quem vai ligar)</string>
     <string name="signing_in">Entrando…</string>
     <string name="copy_code">Copiar código</string>
-    <string name="peer_code_hint">Código de quem você quer chamar</string>
     <string name="start_call">Ligar</string>
     <string name="trusted_contacts">Contatos de confiança</string>
     <string name="no_contacts">Nenhum contato ainda.\n\nToque em "Adicionar contato" e cadastre o nome e o telefone de quem você quer chamar.</string>
@@ -25,8 +24,6 @@
     <string name="save">Salvar</string>
     <string name="cancel">Cancelar</string>
     <string name="fill_all_fields">Preencha nome e código.</string>
-    <string name="enter_code">Digite o código de quem você quer chamar.</string>
-    <string name="cannot_call_self">Você não pode ligar para si mesmo.</string>
     <string name="code_copied">Código copiado.</string>
     <string name="sign_in_failed">Falha ao entrar</string>
     <string name="sign_in_failed_hint">Verifique o google-services.json e ative o login Anônimo no Firebase.</string>

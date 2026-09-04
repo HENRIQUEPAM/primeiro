@@ -1,5 +1,7 @@
 package com.portaretrato.app.call.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -70,6 +72,7 @@ class HomeActivity : AppCompatActivity() {
         binding.privacyButton.setOnClickListener {
             startActivity(Intent(this, PrivacyActivity::class.java))
         }
+        binding.copyCodeButton.setOnClickListener { copyMyCode() }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -98,6 +101,7 @@ class HomeActivity : AppCompatActivity() {
                 appCallConfigured = true
                 binding.statusBanner.visibility = View.GONE
                 binding.myCode.text = state.uid
+                binding.myCodeCard.visibility = View.VISIBLE
             }
 
             AuthState.Failed -> {
@@ -107,6 +111,7 @@ class HomeActivity : AppCompatActivity() {
                 appCallConfigured = false
                 binding.statusBanner.visibility = View.VISIBLE
                 binding.statusBanner.setText(R.string.sign_in_failed_hint)
+                binding.myCodeCard.visibility = View.GONE
             }
 
             AuthState.SigningIn -> {
@@ -115,6 +120,7 @@ class HomeActivity : AppCompatActivity() {
                 // segurança dela estourou. Gateia a chamada pelo app sem
                 // mostrar o aviso de falha — ainda pode resolver sozinho.
                 appCallConfigured = false
+                binding.myCodeCard.visibility = View.GONE
             }
         }
         refresh()
@@ -127,10 +133,18 @@ class HomeActivity : AppCompatActivity() {
                 options = CallOptions.forContact(
                     phone = contact.phone,
                     appCallConfigured = appCallConfigured,
-                    // Pareamento e presença chegam quando o fluxo de pareamento
-                    // existir; até lá a opção do app fica corretamente indisponível.
-                    pairedDeviceId = null,
-                    peerOnline = false,
+                    // "Pareado" aqui é ter um código de aparelho digitado (ver
+                    // TrustedContact.hasDeviceCode) — o pareamento de verdade,
+                    // com confirmação de fingerprint, ainda não tem tela (ver
+                    // docs/FIREBASE.md). Sem presença de verdade (exigiria
+                    // Realtime Database, não só Firestore), peerOnline fica
+                    // otimista: a chamada tenta e, se o código for de um
+                    // aparelho que não existe mais ou está sem app aberto,
+                    // termina em "Ninguém atendeu" — o mesmo desfecho de
+                    // discar um telefone que não atende, não um botão
+                    // enganosamente desabilitado para sempre.
+                    pairedDeviceId = contact.uid.takeIf { contact.hasDeviceCode },
+                    peerOnline = true,
                     alreadyInCall = CallService.activeController != null,
                 ),
             )
@@ -169,7 +183,7 @@ class HomeActivity : AppCompatActivity() {
                         // Sem código de pareamento, o telefone identifica o
                         // contato: dá para cadastrar a família e ligar hoje,
                         // sem depender de nada estar configurado.
-                        uid = code.ifBlank { existing?.uid ?: "tel:$phone" },
+                        uid = code.ifBlank { existing?.uid ?: "${TrustedContact.PHONE_UID_PREFIX}$phone" },
                         name = name,
                         phone = phone.ifBlank { null },
                         autoAnswerEnabled = existing?.autoAnswerEnabled ?: false,
@@ -196,6 +210,21 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
             .show()
+    }
+
+    /**
+     * Copia "Meu código" para a área de transferência — quem vai chamar cola
+     * exatamente isto no campo "Código do aparelho" de [showAddContactDialog]
+     * no OUTRO aparelho. `textIsSelectable` já permite copiar tocando e
+     * segurando, mas um botão escrito é mais confiável para quem não é fluente
+     * em gestos de seleção de texto.
+     */
+    private fun copyMyCode() {
+        val code = binding.myCode.text?.toString().orEmpty()
+        if (code.isBlank()) return
+        val clipboard = getSystemService(ClipboardManager::class.java)
+        clipboard?.setPrimaryClip(ClipData.newPlainText(getString(R.string.my_code_label), code))
+        toast(R.string.code_copied)
     }
 
     private fun toast(resId: Int) = Toast.makeText(this, resId, Toast.LENGTH_LONG).show()

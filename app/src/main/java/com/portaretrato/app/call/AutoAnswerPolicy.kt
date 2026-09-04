@@ -7,7 +7,23 @@ data class TrustedContact(
     /** Telefone em E.164, quando houver. */
     val phone: String?,
     val autoAnswerEnabled: Boolean,
-)
+) {
+    /**
+     * Tem um código de aparelho de verdade (não o `tel:` sintético que
+     * [uid] recebe quando o contato só tem telefone) — e portanto pode ser
+     * chamado pelo próprio app.
+     *
+     * Ver `HomeActivity.showAddContactDialog`: sem um código digitado no
+     * campo "Código do aparelho", `uid` vira `"tel:$phone"`; com um código,
+     * `uid` é exatamente o que foi digitado (o uid do Firebase Auth do outro
+     * aparelho, mostrado como "Meu código" na tela dele).
+     */
+    val hasDeviceCode: Boolean get() = uid.isNotBlank() && !uid.startsWith(PHONE_UID_PREFIX)
+
+    companion object {
+        const val PHONE_UID_PREFIX = "tel:"
+    }
+}
 
 /** O que fazer com um convite. */
 sealed interface AutoAnswerDecision {

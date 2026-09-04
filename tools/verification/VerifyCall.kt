@@ -248,12 +248,29 @@ fun testAutoAnswerKillSwitch() {
         p.decide(invite("t1", "filha"), false, 14) is AutoAnswerDecision.Reject)
 }
 
+// ---------------------------------------------------------------------------
+// 5. Codigo de aparelho x telefone sintetico
+// ---------------------------------------------------------------------------
+fun testHasDeviceCode() {
+    println("[5] TrustedContact.hasDeviceCode")
+
+    fun contact(uid: String) = TrustedContact(uid = uid, name = "x", phone = null, autoAnswerEnabled = false)
+
+    check(
+        "uid tel: sintetico NAO tem codigo de aparelho",
+        !contact("${TrustedContact.PHONE_UID_PREFIX}11999999999").hasDeviceCode,
+    )
+    check("uid digitado tem codigo de aparelho", contact("AbCdEf123456").hasDeviceCode)
+    check("uid vazio NAO tem codigo de aparelho", !contact("").hasDeviceCode)
+}
+
 fun main() {
     println("=== Verificacao do modulo de chamadas ===\n")
     testStateMachine(); println()
     testProtocol(); println()
     testAutoAnswer(); println()
     testAutoAnswerKillSwitch(); println()
+    testHasDeviceCode(); println()
     if (failures == 0) println("TODOS OS TESTES PASSARAM")
     else { println("$failures TESTE(S) FALHARAM"); kotlin.system.exitProcess(1) }
 }

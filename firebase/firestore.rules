@@ -1,11 +1,78 @@
 rules_version = '2';
 
-// Regras alinhadas a Secao 9 da Documentacao Tecnica Consolidada v3.1.
-// O schema canonico e /devices, /pairingRequests, /pairings e
-// /pairings/{id}/callSessions.
+// Duas gerações de schema convivem aqui, de propósito.
+//
+// /calls e /calls/{callId}/candidates são o que o app ESCREVE E LÊ hoje —
+// ver SignalingProtocol.kt e FirestoreSignaling.kt. Sem estas regras, todo
+// "Ligar" pelo aplicativo falha em silêncio: sendOffer() só loga o erro de
+// permissão (Log.e), então o sintoma para quem usa é "não fez nada".
+//
+// /devices, /pairingRequests, /pairings e /pairings/{id}/callSessions são o
+// schema mais elaborado da Secao 9 da Documentacao Tecnica Consolidada v3.1
+// (pareamento com fingerprint P-256, TTL de codigo, etc.) — protocolo escrito
+// e testado em PairingProtocol.kt, mas nenhuma tela o usa ainda (ver
+// docs/FIREBASE.md). Mantidas aqui, sem uso, para quando esse fluxo for
+// construído; não conflitam com /calls, que é uma coleção separada.
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------ calls
+    // Pareamento hoje é manual: cada aparelho mostra o próprio uid do Firebase
+    // Auth ("Meu código"), e quem quer ser chamado pelo app cola esse código
+    // no campo "Código do aparelho" do contato (HomeActivity). Ligar grava a
+    // offer em /calls/{callId} endereçada por toUid; o outro aparelho a
+    // encontra com uma consulta `where toUid == meu uid` (IncomingCallWatcher).
+    match /calls/{callId} {
+      // Cobre tanto get() (qualquer um dos dois lados lendo a própria
+      // chamada) quanto a consulta `where toUid == request.auth.uid` do
+      // IncomingCallWatcher — o padrão seguro de "list" do Firestore: a regra
+      // só precisa valer para o campo que a própria consulta já restringe.
+      allow read: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+
+      // Só quem liga cria o documento, e só com a própria identidade em
+      // fromUid — sem isso qualquer um autenticado poderia gravar uma offer
+      // fingindo ser outra pessoa.
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.sdp is string
+        && request.resource.data.type == 'offer';
+
+      // Atualização é como FirestoreSignaling.sendAnswer/sendHangup gravam:
+      // update() parcial, nunca reescrevendo quem liga, para quem, ou a offer
+      // original. Qualquer um dos dois lados pode atualizar — atender grava
+      // answerSdp/answeredAt (só o lado de toUid faz isso na prática, mas a
+      // regra não precisa forçar, já que o cliente não tenta o contrário) e
+      // desligar grava ended/reason/endedAt (os dois lados podem desligar).
+      allow update: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toUid == resource.data.toUid
+        && request.resource.data.sdp == resource.data.sdp
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['answerSdp', 'answeredAt', 'ended', 'reason', 'endedAt']);
+
+      // FirestoreSignaling.cleanup() apaga o documento depois da chamada —
+      // hoje só do lado de quem ligou, mas permitir dos dois lados evita uma
+      // sessão órfã se o app de quem ligou for encerrado antes de limpar.
+      allow delete: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+
+      match /candidates/{candidateId} {
+        // Cada candidato ICE só faz sentido no contexto da chamada; a
+        // permissão vem de ser um dos dois lados do documento pai.
+        allow read, delete: if request.auth != null
+          && (get(/databases/$(database)/documents/calls/$(callId)).data.fromUid == request.auth.uid
+              || get(/databases/$(database)/documents/calls/$(callId)).data.toUid == request.auth.uid);
+
+        allow create: if request.auth != null
+          && request.resource.data.fromUid == request.auth.uid
+          && (get(/databases/$(database)/documents/calls/$(callId)).data.fromUid == request.auth.uid
+              || get(/databases/$(database)/documents/calls/$(callId)).data.toUid == request.auth.uid);
+      }
+    }
 
     // ---------------------------------------------------------------- devices
     match /devices/{deviceId} {

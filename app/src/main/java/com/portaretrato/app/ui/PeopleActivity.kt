@@ -298,17 +298,19 @@ class PeopleActivity : AppCompatActivity() {
      * Grava o telefone na pessoa reconhecida e a torna chamável, sem duplicar
      * cadastro: se já existir um contato com este telefone, o vínculo é
      * atualizado nele, preservando o que já estava configurado (como
-     * atendimento automático).
+     * atendimento automático, ou um código de aparelho cadastrado à parte em
+     * "Adicionar contato" — ver [TrustedContactsStore.findByPhone]: sem essa
+     * busca por telefone, vincular aqui sempre criaria um segundo registro
+     * sintético e a pessoa perderia a opção de chamada pelo app).
      */
     private fun linkPhoneAndContact(person: Person, phone: String) {
         db.linkPhone(person.id, phone)
         coordinator.persist()
 
-        val uid = "tel:$phone"
-        val existing = contacts.all().firstOrNull { it.uid == uid }
+        val existing = contacts.findByPhone(phone)
         contacts.upsert(
             TrustedContact(
-                uid = uid,
+                uid = existing?.uid ?: "${TrustedContact.PHONE_UID_PREFIX}$phone",
                 name = person.name,
                 phone = phone,
                 autoAnswerEnabled = existing?.autoAnswerEnabled ?: false,

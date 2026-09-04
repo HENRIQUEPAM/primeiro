@@ -55,12 +55,44 @@
         android:text="@string/privacy_title"
         android:textSize="15sp" />
 
-    <TextView
-        android:id="@+id/my_code"
+    <!-- Pareamento manual: cada aparelho mostra o próprio código; quem quer
+         ser chamado pelo app cola esse código no campo "Código do aparelho"
+         de "Adicionar contato" no OUTRO aparelho. Sem isto visível e fácil de
+         copiar, a chamada pelo app não tem como ser configurada — daí o
+         cartão, não mais um texto minúsculo sem rótulo. -->
+    <LinearLayout
+        android:id="@+id/my_code_card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textIsSelectable="true"
-        android:textSize="11sp"
-        android:alpha="0.5" />
+        android:layout_marginTop="16dp"
+        android:background="@color/navy_050"
+        android:orientation="vertical"
+        android:padding="14dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/my_code_label"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/my_code"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textIsSelectable="true"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/copy_code_button"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/copy_code"
+            android:textSize="15sp" />
+    </LinearLayout>
 
 </LinearLayout>

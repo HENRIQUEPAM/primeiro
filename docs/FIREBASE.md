@@ -253,13 +253,62 @@ erro que eu leio.
 
 ---
 
-## O que ainda falta em código
+## Como parear dois aparelhos, hoje
 
-Sendo honesto sobre o estado: mesmo com tudo acima configurado, **falta o fluxo
-de pareamento** — a tela onde os dois aparelhos trocam o código e pinam a chave
-pública um do outro. `call/PairingProtocol.kt` tem o protocolo escrito e
-testado, mas nenhuma tela o usa ainda, do mesmo jeito que o reconhecimento
-facial ficou sem quem o chamasse até agora.
+Existem dois protocolos de pareamento no código, e só um está de pé:
 
-Ou seja: as etapas deste documento são necessárias, e ainda não são suficientes.
-Elas tiram o bloqueio de infraestrutura; sobra o pareamento, que é código meu.
+- `call/PairingProtocol.kt` é o desenho elaborado da Seção 9 — código de
+  convite com TTL, confirmação de fingerprint dos dois lados, chave pública
+  P-256. Está escrito e testado, mas **nenhuma tela o usa**. Fica aqui pronto
+  para quando esse fluxo for construído.
+- O que a chamada pelo app **realmente usa** hoje é mais simples: cada
+  aparelho tem um "código" (o uid anônimo do Firebase Auth), mostrado num
+  cartão no rodapé da tela de contatos ("Meu código", com botão para copiar).
+  Para o aparelho A poder chamar o B pelo app, alguém abre "Adicionar
+  contato" no aparelho A e cola o código do B no campo "Código do aparelho".
+  A chamada então escreve a offer em `/calls/{callId}`, endereçada por esse
+  código — ver `SignalingProtocol.kt`/`FirestoreSignaling.kt`.
+
+**Isto só funciona publicando as regras certas.** Até esta versão,
+`firebase/firestore.rules` só continha regras para o schema elaborado acima
+(`/devices`, `/pairingRequests`, `/pairings`) — nada para `/calls`, que é o
+que o app de fato escreve. Sem uma regra que permita, o Firestore recusa a
+escrita da offer, `sendOffer()` só registra o erro no log (`Log.e`), e o
+sintoma para quem usa o app é "toquei em Ligar e não aconteceu nada". As
+regras já foram corrigidas no repositório — a Etapa 3 acima (publicar
+`firebase/firestore.rules`) agora publica as duas gerações de schema, a que
+está em uso e a que ainda não está.
+
+### Resumindo o que era código e já foi corrigido
+
+- Regras do Firestore sem cobertura para `/calls` (acima).
+- `HomeActivity`/`SlideshowActivity` liam `pairedDeviceId`/`peerOnline`
+  como constantes fixas (`null`/`false`), então o botão "Chamar pelo
+  aparelho" ficava **sempre** indisponível, mesmo com um código digitado
+  certo. Agora `pairedDeviceId` vem do código digitado no contato, e
+  `peerOnline` é otimista — sem um sistema de presença de verdade (exigiria
+  Realtime Database, não só Firestore), a chamada tenta e cai em "Ninguém
+  atendeu" se o código não corresponder a ninguém, do mesmo jeito que ligar
+  para um telefone desligado.
+- Vincular um telefone a um rosto reconhecido (tela "Quem está nas fotos")
+  sempre criava um contato novo, sintético, mesmo quando aquela pessoa já
+  tinha um contato com código de aparelho cadastrado — a chamada pelo app
+  nunca aparecia para quem foi reconhecido numa foto. Agora a busca é pelo
+  telefone (`TrustedContactsStore.findByPhone`), então os dois caminhos
+  (contato manual e rosto reconhecido) convergem no mesmo registro.
+
+### O que ainda falta
+
+Sendo honesto sobre o que resta:
+
+- **Etapas 2 e 3 continuam manuais**, no console do Firebase — nenhuma delas
+  é algo que dá para automatizar sem acesso à sua conta.
+- **TURN (Etapa 4)** continua sem Cloud Function deployada — decisão sua, de
+  custo e de infraestrutura. `TurnCredentialsProvider.kt` já existe e cai
+  para STUN sozinho se a função não responder, então nada quebra por causa
+  disso; simplesmente calls fora do Wi-Fi de casa não vão conectar até essa
+  etapa acontecer.
+- **O fluxo de pareamento com fingerprint da Seção 9** (`PairingProtocol.kt`)
+  segue sem tela — o pareamento por código copiado e colado é mais simples e
+  já funciona, mas não tem a confirmação de identidade dos dois lados que
+  aquele desenho mais elaborado tinha em mente.

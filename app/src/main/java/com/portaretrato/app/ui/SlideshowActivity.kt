@@ -271,8 +271,9 @@ class SlideshowActivity : AppCompatActivity() {
         val options = CallOptions.forContact(
             phone = contact.phone,
             appCallConfigured = appCallConfigured,
-            pairedDeviceId = null,
-            peerOnline = false,
+            // Ver o comentário equivalente em HomeActivity.refresh().
+            pairedDeviceId = contact.uid.takeIf { contact.hasDeviceCode },
+            peerOnline = true,
             alreadyInCall = CallService.activeController != null,
         )
         val labels = options.map { option ->
@@ -292,13 +293,19 @@ class SlideshowActivity : AppCompatActivity() {
      * O telefone vinculado a um rosto já vira um [TrustedContact] no momento
      * em que é vinculado (ver `PeopleActivity.linkPhoneAndContact`); aqui só
      * se busca o contato já existente, para reaproveitar o que o usuário já
-     * configurou nele (como atendimento automático) em vez de recriar do zero.
+     * configurou nele (como atendimento automático, ou um código de aparelho
+     * cadastrado à parte — ver [TrustedContactsStore.findByPhone]) em vez de
+     * recriar do zero.
      */
     private fun contactFor(person: Person): TrustedContact {
         val phone = person.phone.orEmpty()
-        val uid = "tel:$phone"
-        return TrustedContactsStore(this).all().firstOrNull { it.uid == uid }
-            ?: TrustedContact(uid = uid, name = person.name, phone = phone, autoAnswerEnabled = false)
+        return TrustedContactsStore(this).findByPhone(phone)
+            ?: TrustedContact(
+                uid = "${TrustedContact.PHONE_UID_PREFIX}$phone",
+                name = person.name,
+                phone = phone,
+                autoAnswerEnabled = false,
+            )
     }
 
     /**
