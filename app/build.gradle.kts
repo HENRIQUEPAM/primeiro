@@ -6,6 +6,19 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+// Assinatura de release: lida de variáveis de ambiente, nunca de um arquivo
+// versionado — mesmo princípio do google-services.json (segredo real vem de
+// fora do repositório), mas aqui não há "placeholder aceitável": sem os três
+// valores, o build de release simplesmente sai sem assinatura (compila, não
+// instala) em vez de usar uma chave de mentira que alguém poderia confundir
+// com a de verdade. Ver .github/workflows/release-build.yml e o arquivo de
+// credenciais entregue com a keystore.
+val releaseKeystorePath: String? = System.getenv("RELEASE_KEYSTORE_PATH")
+val releaseKeystorePassword: String? = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+val releaseKeyAlias: String? = System.getenv("RELEASE_KEY_ALIAS")
+val hasReleaseSigning: Boolean =
+    !releaseKeystorePath.isNullOrBlank() && !releaseKeystorePassword.isNullOrBlank() && !releaseKeyAlias.isNullOrBlank()
+
 android {
     namespace = "com.portaretrato.app"
     compileSdk = 35
@@ -29,6 +42,19 @@ android {
         }
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                // Mesma senha para a keystore e para a chave, de propósito —
+                // ver o arquivo de credenciais entregue junto da keystore.
+                keyPassword = releaseKeystorePassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -37,6 +63,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

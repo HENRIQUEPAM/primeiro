@@ -1,0 +1,165 @@
+name: Build Release (Play Store)
+
+# Manual só: diferente do build de teste (build-apk.yml, que roda a cada
+# push), gerar um release assinado não precisa acontecer a cada commit —
+# só quando alguém quer de fato testar ou publicar uma versão.
+on:
+  workflow_dispatch:
+
+# Necessario para o job publicar o Release com o APK assinado anexado.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TAG: release-teste
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Mesma logica de build-apk.yml — ver os comentarios la para o porque
+      # de cada prioridade.
+      - name: Preparar google-services.json
+        id: google_services
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            echo "::notice::Usando google-services.json do segredo do repositório."
+          elif [ -s app/google-services.json ]; then
+            echo "::notice::Usando o app/google-services.json versionado."
+          else
+            cp .github/google-services.placeholder.json app/google-services.json
+            echo "::warning::Sem google-services.json real. Build gerado com Firebase de mentira."
+          fi
+
+          python3 - <<'EOF'
+          import json, sys
+          d = json.load(open("app/google-services.json"))
+          alvo = "com.portaretrato.chamadas"
+          pkgs = [c["client_info"]["android_client_info"]["package_name"] for c in d["client"]]
+          if alvo not in pkgs:
+              print(f"::error::google-services.json nao contem {alvo}. Tem: {pkgs}")
+              sys.exit(1)
+          print(f"::notice::projeto {d['project_info']['project_id']}, pacote {alvo} presente.")
+          EOF
+
+      # Sem os tres segredos, o build ainda roda — só sai sem assinatura (ver
+      # app/build.gradle.kts: hasReleaseSigning). Serve para confirmar que o
+      # ProGuard/R8 não quebra nada, mesmo antes da chave existir.
+      - name: Preparar a chave de assinatura
+        id: signing
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ] && [ -n "$RELEASE_KEYSTORE_PASSWORD" ] && [ -n "$RELEASE_KEY_ALIAS" ]; then
+            echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "RELEASE_KEYSTORE_PASSWORD=$RELEASE_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "RELEASE_KEY_ALIAS=$RELEASE_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "::notice::Build será assinado de verdade."
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Sem os segredos RELEASE_KEYSTORE_BASE64/RELEASE_KEYSTORE_PASSWORD/RELEASE_KEY_ALIAS cadastrados no repositório — build SEM assinatura, só para conferir que compila. Ver o arquivo de credenciais entregue junto da keystore."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # AAB é o formato que a Play exige para publicar; APK assinado é só
+      # para instalar e testar direto no celular antes de publicar.
+      - name: Build release (AAB + APK)
+        run: ./gradlew bundleRelease assembleRelease --stacktrace
+
+      - name: Preparar os artefatos
+        id: artifacts
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/bundle/release/app-release.aab dist/porta-retrato.aab
+          cp app/build/outputs/apk/release/app-release.apk dist/porta-retrato-release.apk
+          echo "aab_sha256=$(sha256sum dist/porta-retrato.aab | cut -d" " -f1)" >> "$GITHUB_OUTPUT"
+          echo "apk_sha256=$(sha256sum dist/porta-retrato-release.apk | cut -d" " -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar AAB e APK como artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: porta-retrato-release
+          path: |
+            dist/porta-retrato.aab
+            dist/porta-retrato-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      # Só publica um Release instalável quando o build saiu assinado de
+      # verdade — um APK sem assinatura o Android recusa instalar, então
+      # publicá-lo como "para instalar" seria enganoso.
+      - name: Publicar Release para instalação no celular
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES=$(cat <<EOM
+          Build de RELEASE assinado do Porta Retrato — o mesmo tipo de build
+          que vai para a Google Play, só que instalado direto no celular para
+          testar antes de publicar.
+
+          **Como instalar:** abra este link no navegador do celular, toque em
+          \`porta-retrato-release.apk\`, e confirme. Se o Android avisar sobre
+          "app de fonte desconhecida", toque em Configuracoes e permita a
+          instalacao para o navegador que voce esta usando.
+
+          Diferente do APK de teste (link separado, tag apk-teste): este está
+          com o código minificado/ofuscado (R8) e assinado com a chave de
+          release de verdade — é o jeito certo de conferir que nada quebrou
+          por causa disso (reconhecimento facial e chamadas, principalmente)
+          antes de subir para a Play.
+
+          Requisitos: Android 8.0 ou superior.
+          EOM
+          )
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/porta-retrato-release.apk dist/porta-retrato.aab --clobber
+            gh release edit "$TAG" --notes "$NOTES"
+          else
+            gh release create "$TAG" dist/porta-retrato-release.apk dist/porta-retrato.aab \
+              --title "Porta Retrato — build de release (teste)" \
+              --notes "$NOTES" \
+              --prerelease \
+              --target "$GITHUB_SHA"
+          fi
+          echo "### Release publicado" >> "$GITHUB_STEP_SUMMARY"
+          echo "APK: https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/porta-retrato-release.apk" >> "$GITHUB_STEP_SUMMARY"
+          echo "AAB (para a Play): baixe do artefato do Actions acima, ou deste mesmo Release" >> "$GITHUB_STEP_SUMMARY"
+          echo "SHA-256 do APK: ${{ steps.artifacts.outputs.apk_sha256 }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "SHA-256 do AAB: ${{ steps.artifacts.outputs.aab_sha256 }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Aviso quando não assinado
+        if: steps.signing.outputs.signed != 'true'
+        run: |
+          echo "### Build gerado SEM assinatura" >> "$GITHUB_STEP_SUMMARY"
+          echo "Compilou com sucesso (é o que este passo confirma), mas não" >> "$GITHUB_STEP_SUMMARY"
+          echo "está assinado — não dá para instalar nem publicar assim." >> "$GITHUB_STEP_SUMMARY"
+          echo "Cadastre os segredos RELEASE_KEYSTORE_BASE64," >> "$GITHUB_STEP_SUMMARY"
+          echo "RELEASE_KEYSTORE_PASSWORD e RELEASE_KEY_ALIAS e rode de novo." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar relatórios em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-release-build
+          path: |
+            app/build/reports/
+            build/reports/
+          if-no-files-found: ignore

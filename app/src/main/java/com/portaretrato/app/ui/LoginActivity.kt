@@ -65,18 +65,25 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Notificação e contatos, pedidos aqui — e só aqui — porque esta é a
-     * primeira tela do app. Câmera e microfone NÃO são pedidos: só na primeira
-     * chamada, com justificativa (ver PermissionFlow).
+     * Notificação, pedida aqui — e só aqui — porque esta é a primeira tela do
+     * app. Câmera e microfone NÃO são pedidos: só na primeira chamada, com
+     * justificativa (ver PermissionFlow).
+     *
+     * READ_CONTACTS não é mais pedida: existia só para a videochamada direta
+     * do WhatsApp (`WhatsAppFallback.videoCallIntent`), removida quando "Vídeo
+     * no WhatsApp" saiu das opções de chamada — testado no aparelho real, o
+     * intent simplesmente não abria. Nem chegava a fazer diferença: a
+     * permissão nunca foi declarada no AndroidManifest, então o pedido em
+     * tempo de execução já era, na prática, ignorado pelo Android. O único
+     * outro lugar que mexe com a agenda (PeopleActivity, "Usar contato do
+     * celular") usa o seletor nativo — ACTION_PICK — que dispensa a
+     * permissão de propósito.
      */
     private fun requestStartupPermissions() {
         val permissions = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions += Manifest.permission.POST_NOTIFICATIONS
         }
-        // Habilita a videochamada direta do WhatsApp; sem ela o app cai para a
-        // conversa, que funciona igual.
-        permissions += Manifest.permission.READ_CONTACTS
         if (permissions.isNotEmpty()) requestPermissions.launch(permissions.toTypedArray())
     }
 
