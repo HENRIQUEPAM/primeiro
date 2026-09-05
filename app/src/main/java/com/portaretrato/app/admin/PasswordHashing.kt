@@ -11,10 +11,13 @@ import javax.crypto.spec.PBEKeySpec
  * Não é a mesma classe de ameaça que [com.portaretrato.app.security.FieldCrypto]
  * protege (dado biométrico, se um invasor levar o telefone) — aqui o objetivo é
  * só impedir que alguém pegando o aparelho emprestado tropece sem querer num
- * recurso que abre câmera e microfone sozinho. Ainda assim a senha nunca é
- * gravada em claro: um SharedPreferences pode acabar num backup ou num log de
- * bug report, e "a senha de administrador está ali, de bandeja" seria um erro
- * bobo de se cometer só porque a ameaça é baixa.
+ * recurso que abre câmera e microfone sozinho. Ainda assim a senha nunca fica
+ * em claro em lugar nenhum: nem gravada em disco (não há mais "por aparelho" —
+ * ver [com.portaretrato.app.admin.AdminPassword], a MESMA senha vale em
+ * qualquer instalação), nem no próprio código-fonte, mesmo o repositório
+ * sendo aberto. "A senha de administrador está ali, de bandeja, pra quem
+ * abrir o arquivo" seria um erro bobo de se cometer só porque a ameaça é
+ * baixa.
  *
  * ## Formato do payload
  *

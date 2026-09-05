@@ -43,6 +43,7 @@ Projeto Android completo e buildável. Ver [`COMO-RODAR.md`](../COMO-RODAR.md).
 | `SignalingProtocol.kt` | Serialização das mensagens |
 | `AutoAnswerPolicy.kt` | Decide atender sozinho / tocar / recusar |
 | `admin/PasswordHashing.kt` | Hash salgado (PBKDF2) da senha de administrador |
+| `admin/AdminPassword.kt` | O hash em si — a MESMA senha em qualquer instalação do app, não uma por aparelho |
 
 **Camada Android** (sintaxe verificada; não compilada contra as bibliotecas):
 
@@ -58,9 +59,9 @@ Projeto Android completo e buildável. Ver [`COMO-RODAR.md`](../COMO-RODAR.md).
 | `CallNotifications.kt` | Canais + notificação `CallStyle` |
 | `TrustedContactsStore.kt` | Contatos de confiança, local. Escrita também por `ui/PeopleActivity` (reconhecimento) quando um rosto é vinculado a um telefone |
 | `AuthSession.kt` | Dona do login + do `IncomingCallWatcher`, vive na `Application` |
-| `AutoAnswerSettingsStore.kt` | Interruptor mestre do atendimento automático, em tempo de execução — atrás de `admin/AdminAccess.kt` |
-| `admin/AdminAccess.kt` | Senha de administrador, local; guarda só o hash |
-| `admin/ui/AdminActivity.kt` | Tela de "Recursos avançados": criar/digitar a senha, e o painel com o interruptor |
+| `AutoAnswerSettingsStore.kt` | Interruptor mestre do atendimento automático — por aparelho, atrás de `admin/AdminAccess.kt` |
+| `admin/AdminAccess.kt` | Confere a senha digitada contra `admin/AdminPassword.kt`. Sem estado, sem `Context` |
+| `admin/ui/AdminActivity.kt` | Tela de "Recursos avançados": digitar a senha, e o painel com o interruptor |
 | `ui/CallActivity.kt` | Tela de chamada |
 | `ui/HomeActivity.kt` | Discagem e contatos — alcançada pelo menu do porta-retrato |
 | `ui/LoginActivity.kt` (em `ui/`) | Tela inicial de verdade: aguarda o login e segue para o porta-retrato |

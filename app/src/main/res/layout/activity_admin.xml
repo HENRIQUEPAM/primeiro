@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Duas seções, uma visível de cada vez: login_section (criar ou digitar a
-  senha) e panel_section (os recursos liberados, só depois de entrar).
-  ScrollView por fora pelo mesmo motivo de activity_people.xml — o teclado
-  abrindo sobre os campos de senha não pode empurrar o botão para fora da
-  tela sem um jeito de rolar até ele.
+  Duas seções, uma visível de cada vez: login_section (digitar a senha —
+  a mesma em qualquer instalação do app, ver AdminPassword.kt) e
+  panel_section (os recursos liberados, só depois de entrar). ScrollView
+  por fora pelo mesmo motivo de activity_people.xml — o teclado abrindo
+  sobre o campo de senha não pode empurrar o botão para fora da tela sem
+  um jeito de rolar até ele.
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -24,7 +25,7 @@
             android:textSize="26sp"
             android:textStyle="bold" />
 
-        <!-- Criar ou digitar a senha. -->
+        <!-- Digitar a senha. -->
         <LinearLayout
             android:id="@+id/login_section"
             android:layout_width="match_parent"
@@ -54,24 +55,6 @@
                     android:textSize="18sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Só aparece quando ainda não existe senha (criando pela primeira vez). -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/confirm_password_input_layout"
-                style="@style/Widget.Material3.TextInputLayout.FilledBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:hint="@string/admin_confirm_password_hint"
-                android:visibility="gone">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/confirm_password_input"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword"
-                    android:textSize="18sp" />
-            </com.google.android.material.textfield.TextInputLayout>
-
             <TextView
                 android:id="@+id/login_error"
                 android:layout_width="match_parent"
@@ -86,17 +69,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="16dp"
+                android:text="@string/admin_enter_button"
                 android:textSize="18sp" />
-
-            <TextView
-                android:id="@+id/no_recovery_notice"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:alpha="0.6"
-                android:text="@string/admin_no_recovery"
-                android:textSize="13sp"
-                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Só aparece depois de entrar com a senha certa. -->
@@ -124,15 +98,6 @@
                 android:text="@string/admin_auto_answer_explanation"
                 android:textColor="@color/amber_banner_text"
                 android:textSize="14sp" />
-
-            <Button
-                android:id="@+id/change_password_button"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/admin_change_password_button"
-                android:textSize="15sp" />
         </LinearLayout>
 
     </LinearLayout>
