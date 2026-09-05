@@ -8,16 +8,21 @@ import javax.crypto.spec.PBEKeySpec
 /**
  * Hash salgado da senha de administrador, com PBKDF2-HMAC-SHA256.
  *
+ * Usada por duas senhas diferentes, das duas formas: a senha GLOBAL
+ * ([com.portaretrato.app.admin.AdminPassword], igual em qualquer
+ * instalação, hash compilado no APK) e a senha LOCAL
+ * ([com.portaretrato.app.admin.LocalAdminAccess], uma por aparelho,
+ * cadastrada pelo próprio dono e presa à rede Wi-Fi de casa).
+ *
  * Não é a mesma classe de ameaça que [com.portaretrato.app.security.FieldCrypto]
  * protege (dado biométrico, se um invasor levar o telefone) — aqui o objetivo é
  * só impedir que alguém pegando o aparelho emprestado tropece sem querer num
  * recurso que abre câmera e microfone sozinho. Ainda assim a senha nunca fica
- * em claro em lugar nenhum: nem gravada em disco (não há mais "por aparelho" —
- * ver [com.portaretrato.app.admin.AdminPassword], a MESMA senha vale em
- * qualquer instalação), nem no próprio código-fonte, mesmo o repositório
- * sendo aberto. "A senha de administrador está ali, de bandeja, pra quem
- * abrir o arquivo" seria um erro bobo de se cometer só porque a ameaça é
- * baixa.
+ * em claro em lugar nenhum: a local nunca é gravada em disco (só o hash, no
+ * SharedPreferences do aparelho que a cadastrou), e a global nem aparece no
+ * próprio código-fonte, mesmo o repositório sendo aberto. "A senha de
+ * administrador está ali, de bandeja" seria um erro bobo de se cometer só
+ * porque a ameaça é baixa.
  *
  * ## Formato do payload
  *

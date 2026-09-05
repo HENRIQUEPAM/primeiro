@@ -28,15 +28,31 @@
     <string name="sign_in_failed">Falha ao entrar</string>
     <string name="sign_in_failed_hint">Verifique o google-services.json e ative o login Anônimo no Firebase.</string>
 
-    <!-- Recursos avançados (senha de administrador — a mesma em qualquer instalação do app) -->
+    <!-- Recursos avançados (senha de administrador: global ou local) -->
     <string name="advanced_features">Recursos avançados</string>
-    <string name="admin_intro">Esta senha libera recursos que exigem cuidado extra, como a câmera e o microfone abrindo sozinhos numa chamada. É a mesma senha em qualquer aparelho com este app.</string>
-    <string name="admin_not_configured">Nenhuma senha foi definida para este app ainda. Fale com quem administra a família.</string>
+    <string name="admin_intro">Digite a senha global (a mesma em qualquer aparelho) ou a senha local deste aparelho, se já tiver cadastrado uma. Libera recursos que exigem cuidado extra, como a câmera e o microfone abrindo sozinhos numa chamada.</string>
     <string name="admin_password_hint">Senha</string>
+    <string name="admin_confirm_password_hint">Confirme a senha</string>
     <string name="admin_enter_button">Entrar</string>
     <string name="admin_wrong_password">Senha incorreta.</string>
+    <string name="admin_wrong_network">Essa é a senha local certa, mas só funciona na rede onde foi cadastrada — este aparelho está em outra rede agora.</string>
+    <string name="admin_passwords_dont_match">As duas senhas digitadas são diferentes.</string>
+    <string name="admin_password_too_short">Escreva pelo menos 4 caracteres.</string>
+    <string name="admin_new_password_set">Senha local salva.</string>
     <string name="admin_auto_answer_switch">Atendimento automático (babá eletrônica)</string>
     <string name="admin_auto_answer_explanation">Ligado, você pode marcar contatos de confiança (na tela de contatos) para que a câmera e o microfone abram sozinhos, sem ninguém tocar em nada, quando eles ligarem. Desligado aqui, nenhum contato atende sozinho, mesmo que já esteja marcado. Este interruptor é só deste aparelho — a senha é a mesma em todos, mas cada um decide se quer o recurso ligado.</string>
+
+    <!-- Senha local: cadastrada por aparelho, presa à rede Wi-Fi onde foi criada -->
+    <string name="admin_local_password_not_configured">Nenhuma senha local cadastrada neste aparelho ainda. Ela só funciona na rede Wi-Fi em que for criada — prova que quem está entrando está dentro de casa.</string>
+    <string name="admin_local_password_configured">Senha local cadastrada para a rede \"%1$s\". Só funciona nela.</string>
+    <string name="admin_register_local_password_button">Cadastrar senha local deste aparelho</string>
+    <string name="admin_change_local_password_button">Trocar senha local (rede atual)</string>
+    <string name="admin_need_wifi_to_register">Conecte-se ao Wi-Fi de casa antes de cadastrar a senha local.</string>
+    <string name="admin_network_name_unavailable">Não consegui identificar o nome da rede Wi-Fi. Verifique se a localização do aparelho está ativada, nas Configurações do Android.</string>
+    <string name="admin_location_permission_title">Por que o app pede localização</string>
+    <string name="admin_location_permission_explanation">Para a senha local reconhecer a rede Wi-Fi de casa, o Android exige a permissão de localização — é a única forma que o sistema oferece para ler o NOME da rede, mesmo o app não usando localização geográfica para nada. Ele não sabe, e não pergunta, onde este aparelho está.</string>
+    <string name="admin_location_permission_continue">Entendi, continuar</string>
+    <string name="admin_location_permission_denied">Sem a permissão, não é possível cadastrar uma senha local. A senha global continua funcionando normalmente.</string>
 
     <!-- Chamada -->
     <string name="incoming_call_title">Chamada recebida</string>

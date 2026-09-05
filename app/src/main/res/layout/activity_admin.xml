@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Duas seções, uma visível de cada vez: login_section (digitar a senha —
-  a mesma em qualquer instalação do app, ver AdminPassword.kt) e
-  panel_section (os recursos liberados, só depois de entrar). ScrollView
-  por fora pelo mesmo motivo de activity_people.xml — o teclado abrindo
-  sobre o campo de senha não pode empurrar o botão para fora da tela sem
-  um jeito de rolar até ele.
+  Duas seções, uma visível de cada vez: login_section (senha global OU
+  local, mais o cadastro da senha local deste aparelho) e panel_section
+  (os recursos liberados, só depois de entrar). ScrollView por fora pelo
+  mesmo motivo de activity_people.xml — o teclado abrindo sobre o campo de
+  senha não pode empurrar o botão para fora da tela sem um jeito de rolar
+  até ele.
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -25,7 +25,8 @@
             android:textSize="26sp"
             android:textStyle="bold" />
 
-        <!-- Digitar a senha. -->
+        <!-- Digitar a senha — global (qualquer rede) ou local (só na rede
+             onde foi cadastrada). -->
         <LinearLayout
             android:id="@+id/login_section"
             android:layout_width="match_parent"
@@ -71,6 +72,26 @@
                 android:layout_marginTop="16dp"
                 android:text="@string/admin_enter_button"
                 android:textSize="18sp" />
+
+            <!-- Cadastro/estado da senha local deste aparelho. Separado do
+                 campo de senha acima: uma coisa é ENTRAR (com a senha que já
+                 existe, global ou local), outra é CADASTRAR a senha local
+                 pela primeira vez neste aparelho. -->
+            <TextView
+                android:id="@+id/local_password_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:alpha="0.7"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/local_password_button"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="15sp" />
         </LinearLayout>
 
         <!-- Só aparece depois de entrar com a senha certa. -->

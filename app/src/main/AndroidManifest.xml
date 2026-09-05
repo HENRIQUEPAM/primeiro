@@ -3,6 +3,15 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Único uso: ler o NOME (SSID) da rede Wi-Fi atual, para a senha local
+         de "Recursos avançados" (admin/LocalAdminAccess.kt) reconhecer "a
+         mesma rede de casa" e recusar em qualquer outra. É o único jeito que
+         o Android oferece para isso a partir da versão 8 — o app não lê
+         localização geográfica nenhuma, nunca chama a API de GPS/fused
+         location, só WifiManager.connectionInfo.ssid. Pedida em tempo de
+         execução, só quando alguém tenta cadastrar a senha local pela
+         primeira vez — nunca no primeiro uso do app. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
