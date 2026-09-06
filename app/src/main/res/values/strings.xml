@@ -41,6 +41,10 @@
     <string name="admin_new_password_set">Senha local salva.</string>
     <string name="admin_auto_answer_switch">Atendimento automático (babá eletrônica)</string>
     <string name="admin_auto_answer_explanation">Ligado, você pode marcar contatos de confiança (na tela de contatos) para que a câmera e o microfone abram sozinhos, sem ninguém tocar em nada, quando eles ligarem. Desligado aqui, nenhum contato atende sozinho, mesmo que já esteja marcado. Este interruptor é só deste aparelho — a senha é a mesma em todos, mas cada um decide se quer o recurso ligado.</string>
+    <string name="admin_max_duration_title">Duração máxima da chamada</string>
+    <string name="admin_max_duration_button">Duração máxima da chamada: %1$d min</string>
+    <string name="admin_max_duration_explanation">Toda chamada desliga sozinha depois deste tempo, mesmo que ninguém desligue — inclusive a que a babá eletrônica atende sozinha. Nos últimos 15 segundos, a tela avisa antes de desligar. Vale a partir da próxima chamada.</string>
+    <string name="minutes_format">%1$d min</string>
 
     <!-- Senha local: cadastrada por aparelho, presa à rede Wi-Fi onde foi criada -->
     <string name="admin_local_password_not_configured">Nenhuma senha local cadastrada neste aparelho ainda. Ela só funciona na rede Wi-Fi em que for criada — prova que quem está entrando está dentro de casa.</string>
@@ -69,6 +73,7 @@
     <string name="connected">Conectado</string>
     <string name="reconnecting">Conexão instável, tentando voltar…</string>
     <string name="auto_answering_in">Atendendo em %1$d…</string>
+    <string name="call_ending_in">Encerrando em %1$d…</string>
     <string name="permissions_required">Precisa liberar câmera e microfone.</string>
 
     <!-- Fim de chamada -->
@@ -78,6 +83,7 @@
     <string name="ended_no_answer">Ninguém atendeu</string>
     <string name="ended_busy">Ocupado</string>
     <string name="ended_connection_failed">Não foi possível conectar</string>
+    <string name="ended_max_duration">Chamada encerrada automaticamente (tempo máximo atingido)</string>
 
     <!-- Aviso de camera ativa -->
     <string name="camera_notice_title">Câmera ligada</string>

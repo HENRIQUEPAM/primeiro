@@ -119,6 +119,25 @@
                 android:text="@string/admin_auto_answer_explanation"
                 android:textColor="@color/amber_banner_text"
                 android:textSize="14sp" />
+
+            <!-- Duração máxima de QUALQUER chamada — vale mesmo sem o
+                 atendimento automático ligado. Botão + explicação, no mesmo
+                 estilo de "Tempo de cada foto" (SlideshowActivity). -->
+            <Button
+                android:id="@+id/max_duration_button"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:textSize="15sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:alpha="0.7"
+                android:text="@string/admin_max_duration_explanation"
+                android:textSize="14sp" />
         </LinearLayout>
 
     </LinearLayout>

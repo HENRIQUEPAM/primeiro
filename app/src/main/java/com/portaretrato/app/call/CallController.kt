@@ -34,6 +34,14 @@ data class CallUiState(
     val errorMessage: String? = null,
     /** Segundos restantes do atendimento automático; `null` quando não se aplica. */
     val autoAnswerCountdown: Int? = null,
+    /**
+     * Segundos restantes antes do encerramento automático por duração
+     * máxima; `null` até faltar pouco tempo (ver [CallController.
+     * WARNING_WINDOW_MS]). Existe para a chamada NUNCA cair sem aviso: quem
+     * está do outro lado, especialmente um idoso, não pode achar que a
+     * ligação caiu sozinha ou que a pessoa desligou na cara dele.
+     */
+    val endingCountdown: Int? = null,
 )
 
 /**
@@ -69,6 +77,7 @@ class CallController(
     private var ringTimeoutJob: Job? = null
     private var reconnectTimeoutJob: Job? = null
     private var autoAnswerJob: Job? = null
+    private var maxDurationJob: Job? = null
     private var isCaller = false
     private var cameraLease: CameraLease? = null
 
@@ -272,6 +281,14 @@ class CallController(
         Log.d(TAG, "Chamada: $from -> $to")
         _uiState.value = _uiState.value.copy(state = to)
 
+        // Começa a contar na PRIMEIRA vez que a chamada fica ACTIVE, e só
+        // uma vez (maxDurationJob == null) — uma queda e reconexão no meio
+        // do caminho não reinicia o prazo, o relógio da duração máxima
+        // corre desde o início da conversa, não desde a última reconexão.
+        if (to == CallState.ACTIVE && maxDurationJob == null) {
+            startMaxDurationTimer()
+        }
+
         // Perdeu a conexão: dá um prazo para voltar antes de encerrar. Trocar
         // de Wi-Fi para 4G no meio da chamada cai aqui e costuma se recuperar.
         if (to == CallState.RECONNECTING) {
@@ -285,6 +302,32 @@ class CallController(
         }
     }
 
+    /**
+     * Encerra QUALQUER chamada depois de [CallConfig.maxDurationMs] —
+     * inclusive a que o atendimento automático aceitou sozinho. Pedido
+     * explícito: "encerramento automático de 1 a 5 minutos, qualquer
+     * chamada, inclusive as de babá eletrônica".
+     *
+     * Nos últimos [WARNING_WINDOW_MS] a tela mostra uma contagem regressiva
+     * ([CallUiState.endingCountdown]) — desligar sem aviso pareceria, para
+     * quem está do outro lado, uma queda de ligação ou o outro lado tendo
+     * desligado de repente.
+     */
+    private fun startMaxDurationTimer() {
+        maxDurationJob = scope.launch {
+            val warningDelay = (config.maxDurationMs - WARNING_WINDOW_MS).coerceAtLeast(0)
+            delay(warningDelay)
+
+            var remaining = (WARNING_WINDOW_MS / 1_000).toInt().coerceAtLeast(1)
+            while (remaining > 0) {
+                _uiState.value = _uiState.value.copy(endingCountdown = remaining)
+                delay(1_000)
+                remaining--
+            }
+            hangup(CallEndReason.MAX_DURATION_REACHED)
+        }
+    }
+
     private fun finish(reason: CallEndReason) {
         val current = machine ?: return
         if (current.isFinished) return
@@ -293,6 +336,8 @@ class CallController(
         cancelRingTimeout()
         autoAnswerJob?.cancel()
         reconnectTimeoutJob?.cancel()
+        maxDurationJob?.cancel()
+        maxDurationJob = null
         signaling.stop()
         engine?.release()
         engine = null
@@ -363,5 +408,8 @@ class CallController(
 
     private companion object {
         const val TAG = "CallController"
+
+        /** Janela final da chamada, com contagem regressiva visível na tela. */
+        const val WARNING_WINDOW_MS = 15_000L
     }
 }

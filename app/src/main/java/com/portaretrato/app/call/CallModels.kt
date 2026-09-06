@@ -47,6 +47,13 @@ enum class CallEndReason {
     BUSY,
     CONNECTION_FAILED,
     PERMISSION_DENIED,
+
+    /**
+     * Duração máxima atingida (ver [CallConfig.maxDurationMs]) — nenhuma
+     * chamada, nem a que o atendimento automático aceitou sozinho, fica
+     * aberta pra sempre.
+     */
+    MAX_DURATION_REACHED,
     ERROR,
 }
 
@@ -86,6 +93,16 @@ data class CallConfig(
     val ringTimeoutMs: Long = 45_000,
     /** Quanto tempo tentar reconectar antes de encerrar. */
     val reconnectTimeoutMs: Long = 20_000,
+    /**
+     * Tempo máximo com a chamada ACTIVE antes do encerramento automático —
+     * pedido explícito: nenhuma chamada, nem a que o atendimento automático
+     * ("babá eletrônica") aceitou sozinho, deve ficar aberta indefinidamente.
+     * Ajustável em "Recursos avançados" entre [com.portaretrato.app.call.
+     * CallDurationSettingsStore.MIN_MINUTES] e MAX_MINUTES; este valor aqui é
+     * só o padrão de fábrica, para quem constrói um [CallConfig] sem passar
+     * o valor guardado (testes, por exemplo).
+     */
+    val maxDurationMs: Long = 3 * 60_000L,
 ) {
     companion object {
         /**
@@ -93,7 +110,7 @@ data class CallConfig(
          * NAT simétrico (comum em operadoras móveis e em Wi-Fi corporativo).
          * Serve para desenvolvimento; em produção acrescente TURN.
          */
-        fun stunOnly(): CallConfig = CallConfig(
+        fun stunOnly(maxDurationMs: Long = 3 * 60_000L): CallConfig = CallConfig(
             iceServers = listOf(
                 IceServerConfig(
                     listOf(
@@ -102,6 +119,7 @@ data class CallConfig(
                     ),
                 ),
             ),
+            maxDurationMs = maxDurationMs,
         )
     }
 }

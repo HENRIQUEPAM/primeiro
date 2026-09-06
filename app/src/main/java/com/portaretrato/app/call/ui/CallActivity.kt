@@ -44,6 +44,10 @@ import org.webrtc.VideoTrack
  * - Durante o atendimento automático, contagem regressiva bem visível com o
  *   botão de recusar do lado — atender sem aviso seria abrir a câmera da casa
  *   sem nenhum sinal.
+ * - Toda chamada tem uma duração máxima (ver [CallController.
+ *   startMaxDurationTimer], ajustável em "Recursos avançados"): nos últimos
+ *   15 segundos a tela avisa antes de desligar sozinha, pelo mesmo motivo —
+ *   um corte sem aviso pareceria queda de sinal ou o outro lado desligando.
  */
 class CallActivity : AppCompatActivity() {
 
@@ -144,6 +148,8 @@ class CallActivity : AppCompatActivity() {
             state.errorMessage != null -> state.errorMessage
             state.autoAnswerCountdown != null ->
                 getString(R.string.auto_answering_in, state.autoAnswerCountdown)
+            state.endingCountdown != null ->
+                getString(R.string.call_ending_in, state.endingCountdown)
             state.state == CallState.DIALING -> getString(R.string.calling)
             state.state == CallState.RINGING -> getString(R.string.incoming_call_title)
             state.state == CallState.CONNECTING -> getString(R.string.connecting)
@@ -171,6 +177,7 @@ class CallActivity : AppCompatActivity() {
             CallEndReason.BUSY -> R.string.ended_busy
             CallEndReason.CONNECTION_FAILED -> R.string.ended_connection_failed
             CallEndReason.PERMISSION_DENIED -> R.string.permissions_required
+            CallEndReason.MAX_DURATION_REACHED -> R.string.ended_max_duration
             else -> R.string.ended
         },
     )

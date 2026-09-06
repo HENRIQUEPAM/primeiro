@@ -60,9 +60,10 @@ Projeto Android completo e buildável. Ver [`COMO-RODAR.md`](../COMO-RODAR.md).
 | `TrustedContactsStore.kt` | Contatos de confiança, local. Escrita também por `ui/PeopleActivity` (reconhecimento) quando um rosto é vinculado a um telefone |
 | `AuthSession.kt` | Dona do login + do `IncomingCallWatcher`, vive na `Application` |
 | `AutoAnswerSettingsStore.kt` | Interruptor mestre do atendimento automático — por aparelho, atrás de `admin/AdminAccess.kt` |
+| `CallDurationSettingsStore.kt` | Duração máxima de QUALQUER chamada (1 a 5 min, por aparelho) — desliga sozinha, inclusive as que o atendimento automático aceitou |
 | `admin/AdminAccess.kt` | Confere a senha digitada contra a global (`admin/AdminPassword.kt`) e a local (`admin/LocalAdminAccess.kt`) |
 | `admin/LocalAdminAccess.kt` | Senha LOCAL, cadastrada por aparelho, presa ao SSID da rede Wi-Fi onde foi criada |
-| `admin/ui/AdminActivity.kt` | Tela de "Recursos avançados": digitar a senha (global ou local), cadastrar a senha local deste aparelho, e o painel com o interruptor |
+| `admin/ui/AdminActivity.kt` | Tela de "Recursos avançados": digitar a senha (global ou local), cadastrar a senha local deste aparelho, e o painel com o interruptor de atendimento automático + a duração máxima da chamada |
 | `ui/CallActivity.kt` | Tela de chamada |
 | `ui/HomeActivity.kt` | Discagem e contatos — alcançada pelo menu do porta-retrato |
 | `ui/LoginActivity.kt` (em `ui/`) | Tela inicial de verdade: aguarda o login e segue para o porta-retrato |

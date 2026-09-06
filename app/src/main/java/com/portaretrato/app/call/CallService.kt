@@ -145,7 +145,12 @@ class CallService : Service() {
             localName = user.displayName.orEmpty(),
             // TODO: buscar credenciais efêmeras de TURN. Ver docs/CHAMADAS.md.
             // Só com STUN, chamadas em NAT simétrico (rede móvel) não conectam.
-            config = CallConfig.stunOnly(),
+            // Duração máxima lida agora, na criação do controller (uma por
+            // ciclo de chamada) — mesmo padrão do autoAnswerPolicy acima:
+            // mudar em "Recursos avançados" vale a partir da PRÓXIMA chamada.
+            config = CallConfig.stunOnly(
+                maxDurationMs = CallDurationSettingsStore(applicationContext).maxDurationMinutes() * 60_000L,
+            ),
             // O guarda vem da Application: unico no processo, senao a garantia
             // de camera exclusiva cai por terra.
             cameraGuard = PortaRetratoApp.from(applicationContext).cameraGuard,

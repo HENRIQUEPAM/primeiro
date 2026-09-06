@@ -16,14 +16,18 @@ import com.portaretrato.app.admin.AdminAccess
 import com.portaretrato.app.admin.AdminVerifyResult
 import com.portaretrato.app.admin.LocalRegisterResult
 import com.portaretrato.app.call.AutoAnswerSettingsStore
+import com.portaretrato.app.call.CallDurationSettingsStore
 import com.portaretrato.app.databinding.ActivityAdminBinding
 
 /**
  * "Recursos avançados": duas formas de entrar (ver [AdminAccess]) — a senha
  * global, igual em qualquer instalação, ou a senha local, cadastrada por
  * este aparelho e presa à rede Wi-Fi em que foi criada. As duas liberam o
- * mesmo painel, com o interruptor mestre do atendimento automático ("babá
- * eletrônica" — ver [com.portaretrato.app.call.AutoAnswerPolicy]).
+ * mesmo painel: o interruptor mestre do atendimento automático ("babá
+ * eletrônica" — ver [com.portaretrato.app.call.AutoAnswerPolicy]) e a
+ * duração máxima de qualquer chamada (ver [com.portaretrato.app.call.
+ * CallDurationSettingsStore]), que vale mesmo com o atendimento automático
+ * desligado.
  *
  * Sempre nasce travada, mesmo que já tenha sido destravada nesta mesma
  * sessão do app: não guarda "já entrei uma vez" em lugar nenhum.
@@ -33,6 +37,7 @@ class AdminActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAdminBinding
     private lateinit var access: AdminAccess
     private lateinit var autoAnswerSettings: AutoAnswerSettingsStore
+    private lateinit var callDurationSettings: CallDurationSettingsStore
 
     private val requestLocationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -47,6 +52,7 @@ class AdminActivity : AppCompatActivity() {
 
         access = AdminAccess(this)
         autoAnswerSettings = AutoAnswerSettingsStore(this)
+        callDurationSettings = CallDurationSettingsStore(this)
 
         binding.loginIntro.setText(R.string.admin_intro)
         binding.loginButton.setOnClickListener { onLoginButtonTapped() }
@@ -91,6 +97,32 @@ class AdminActivity : AppCompatActivity() {
         binding.autoAnswerSwitch.setOnCheckedChangeListener { _, checked ->
             autoAnswerSettings.setEnabled(checked)
         }
+
+        renderMaxDurationButton()
+        binding.maxDurationButton.setOnClickListener { showMaxDurationDialog() }
+    }
+
+    // ------------------------------------------------ duração máxima da chamada
+
+    private fun renderMaxDurationButton() {
+        binding.maxDurationButton.text =
+            getString(R.string.admin_max_duration_button, callDurationSettings.maxDurationMinutes())
+    }
+
+    private fun showMaxDurationDialog() {
+        val options = (CallDurationSettingsStore.MIN_MINUTES..CallDurationSettingsStore.MAX_MINUTES).toList()
+        val labels = options.map { getString(R.string.minutes_format, it) }.toTypedArray()
+        val current = options.indexOf(callDurationSettings.maxDurationMinutes())
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.admin_max_duration_title)
+            .setSingleChoiceItems(labels, current) { dialog, which ->
+                callDurationSettings.setMaxDurationMinutes(options[which])
+                renderMaxDurationButton()
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     // --------------------------------------------------------- senha local
