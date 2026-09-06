@@ -49,11 +49,14 @@
             android:layout_marginTop="16dp"
             android:text="@string/auto_answer_checkbox" />
 
+        <!-- Texto montado em código (HomeActivity.showAddContactDialog): o
+             tempo de atraso é ajustável (10 a 30 s, Recursos avançados), o
+             XML não pode cravar o número. -->
         <TextView
+            android:id="@+id/auto_answer_warning_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/auto_answer_warning"
             android:textSize="13sp" />
     </LinearLayout>
 

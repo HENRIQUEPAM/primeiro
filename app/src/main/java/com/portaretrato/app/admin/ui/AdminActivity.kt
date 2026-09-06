@@ -24,8 +24,10 @@ import com.portaretrato.app.databinding.ActivityAdminBinding
  * global, igual em qualquer instalação, ou a senha local, cadastrada por
  * este aparelho e presa à rede Wi-Fi em que foi criada. As duas liberam o
  * mesmo painel: o interruptor mestre do atendimento automático ("babá
- * eletrônica" — ver [com.portaretrato.app.call.AutoAnswerPolicy]) e a
- * duração máxima de qualquer chamada (ver [com.portaretrato.app.call.
+ * eletrônica" — ver [com.portaretrato.app.call.AutoAnswerPolicy]), o tempo
+ * de contagem antes dele atender sozinho (10 a 30 s — ver
+ * [com.portaretrato.app.call.AutoAnswerSettingsStore]) e a duração máxima
+ * de qualquer chamada (ver [com.portaretrato.app.call.
  * CallDurationSettingsStore]), que vale mesmo com o atendimento automático
  * desligado.
  *
@@ -98,8 +100,34 @@ class AdminActivity : AppCompatActivity() {
             autoAnswerSettings.setEnabled(checked)
         }
 
+        renderAnswerDelayButton()
+        binding.answerDelayButton.setOnClickListener { showAnswerDelayDialog() }
+
         renderMaxDurationButton()
         binding.maxDurationButton.setOnClickListener { showMaxDurationDialog() }
+    }
+
+    // --------------------------------------------- atraso do atendimento automático
+
+    private fun renderAnswerDelayButton() {
+        binding.answerDelayButton.text =
+            getString(R.string.admin_answer_delay_button, autoAnswerSettings.answerDelaySeconds())
+    }
+
+    private fun showAnswerDelayDialog() {
+        val options = (AutoAnswerSettingsStore.MIN_DELAY_SECONDS..AutoAnswerSettingsStore.MAX_DELAY_SECONDS step 5).toList()
+        val labels = options.map { getString(R.string.seconds_short_format, it) }.toTypedArray()
+        val current = options.indexOf(autoAnswerSettings.answerDelaySeconds())
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.admin_answer_delay_title)
+            .setSingleChoiceItems(labels, current) { dialog, which ->
+                autoAnswerSettings.setAnswerDelaySeconds(options[which])
+                renderAnswerDelayButton()
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     // ------------------------------------------------ duração máxima da chamada

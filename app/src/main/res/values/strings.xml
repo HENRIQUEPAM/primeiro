@@ -16,7 +16,7 @@
     <string name="contact_name_hint">Nome</string>
     <string name="contact_code_hint">Código do aparelho (opcional)</string>
     <string name="auto_answer_checkbox">Atender automaticamente</string>
-    <string name="auto_answer_warning">Com isto ligado, a chamada desta pessoa é atendida sozinha após 3 segundos, abrindo câmera e microfone. Ative apenas para quem você confia totalmente.</string>
+    <string name="auto_answer_warning">Com isto ligado, a chamada desta pessoa é atendida sozinha após %1$d segundos, abrindo câmera e microfone. Ative apenas para quem você confia totalmente.</string>
     <string name="auto_answer_on"> — atende sozinho</string>
     <string name="enable_auto_answer">Ativar atendimento automático</string>
     <string name="disable_auto_answer">Desativar atendimento automático</string>
@@ -45,6 +45,10 @@
     <string name="admin_max_duration_button">Duração máxima da chamada: %1$d min</string>
     <string name="admin_max_duration_explanation">Toda chamada desliga sozinha depois deste tempo, mesmo que ninguém desligue — inclusive a que a babá eletrônica atende sozinha. Nos últimos 15 segundos, a tela avisa antes de desligar. Vale a partir da próxima chamada.</string>
     <string name="minutes_format">%1$d min</string>
+    <string name="admin_answer_delay_title">Tempo antes de atender sozinho</string>
+    <string name="admin_answer_delay_button">Tempo antes de atender sozinho: %1$d s</string>
+    <string name="admin_answer_delay_explanation">Com o atendimento automático ligado, é esse o tempo que a tela mostra contando — com o nome de quem ligou — antes da câmera e do microfone abrirem sozinhos. Dá tempo de recusar. Vale a partir da próxima chamada.</string>
+    <string name="seconds_short_format">%1$d s</string>
 
     <!-- Senha local: cadastrada por aparelho, presa à rede Wi-Fi onde foi criada -->
     <string name="admin_local_password_not_configured">Nenhuma senha local cadastrada neste aparelho ainda. Ela só funciona na rede Wi-Fi em que for criada — prova que quem está entrando está dentro de casa.</string>

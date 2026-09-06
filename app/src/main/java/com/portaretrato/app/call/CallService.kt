@@ -42,11 +42,14 @@ class CallService : Service() {
         contacts = TrustedContactsStore(this)
         // Lido uma vez, na criação do service — que é recriado a cada
         // ciclo de chamada (ver stopIfIdle/stopSelf), então uma mudança no
-        // interruptor mestre feita em AdminActivity vale a partir da
-        // PRÓXIMA chamada, nunca no meio de uma já em andamento.
+        // interruptor mestre ou no tempo de atraso, feita em AdminActivity,
+        // vale a partir da PRÓXIMA chamada, nunca no meio de uma já em
+        // andamento.
+        val autoAnswerSettings = AutoAnswerSettingsStore(this)
         autoAnswerPolicy = AutoAnswerPolicy(
             trustedContacts = { contacts.all() },
-            featureEnabled = AutoAnswerSettingsStore(this).isEnabled(),
+            answerDelayMs = autoAnswerSettings.answerDelaySeconds() * 1_000L,
+            featureEnabled = autoAnswerSettings.isEnabled(),
         )
         instance = this
     }

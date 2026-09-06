@@ -169,6 +169,8 @@ class HomeActivity : AppCompatActivity() {
         val codeField = view.findViewById<android.widget.EditText>(R.id.contact_code)
         val autoAnswerSection = view.findViewById<View>(R.id.auto_answer_section)
         val autoAnswerCheckbox = view.findViewById<android.widget.CheckBox>(R.id.contact_auto_answer)
+        val autoAnswerWarning = view.findViewById<android.widget.TextView>(R.id.auto_answer_warning_text)
+        autoAnswerWarning.text = getString(R.string.auto_answer_warning, autoAnswerSettings.answerDelaySeconds())
 
         existing?.let {
             nameField.setText(it.name)

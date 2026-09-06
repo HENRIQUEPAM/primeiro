@@ -192,8 +192,11 @@ class AutoAnswerPolicy(
         const val FEATURE_ENABLED = false
 
         /**
-         * 3 segundos: tempo suficiente para ler o nome na tela e recusar, sem
-         * fazer quem ligou achar que ninguém vai atender.
+         * Valor de fábrica: 3 segundos. Ajustável de verdade (10 a 30 s) em
+         * "Recursos avançados" via [AutoAnswerSettingsStore.answerDelaySeconds]
+         * — este `const val` só vale antes de alguém jamais abrir aquela
+         * tela, e para quem constrói um [AutoAnswerPolicy] sem passar nada
+         * (o caso de teste).
          */
         const val DEFAULT_ANSWER_DELAY_MS = 3_000L
 
