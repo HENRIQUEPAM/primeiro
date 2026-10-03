@@ -5,8 +5,8 @@ Todas as medidas em milimetros.
 Referencial: X = largura (0 no centro), Y = profundidade (0 na frente da base),
 Z = altura (0 na mesa).
 
-Serve para qualquer celular ate ~13 mm de espessura (com ou sem capinha),
-em retrato ou paisagem, e permite carregar o aparelho apoiado.
+Dimensionado para o Xiaomi Redmi 13C (168 x 78 x 8,09 mm), em retrato ou
+paisagem, com o aparelho podendo ser carregado apoiado.
 """
 import numpy as np
 import trimesh
@@ -22,14 +22,14 @@ TAN  = SIN / COS
 W_BASE, D_BASE, T_BASE, R_BASE = 110.0, 85.0, 5.0, 5.0   # base
 W_FRAME = 100.0                  # largura da moldura e da aba frontal
 
-Y0      = 21.0                   # face frontal da moldura, em Y, na altura Z=T_BASE
-CANAL   = 14.0                   # folga do canal (perpendicular ao celular)
+Y0      = 18.3                   # face frontal da moldura, em Y, na altura Z=T_BASE
+CANAL   = 11.5                   # canal: 8,1 mm do aparelho + folga p/ capa fina
 Z_PISO  = 18.0                   # altura do piso onde o celular apoia
 T_LIP, H_LIP = 5.0, 30.0         # aba frontal: espessura e comprimento na inclinacao
 T_SUP, L_SUP = 6.0, 74.0         # moldura: espessura e comprimento na inclinacao
 
 W_JAN, JAN_A, JAN_B, R_JAN = 60.0, 24.0, 62.0, 12.0      # janela da moldura
-W_CABO  = 34.0                   # largura do vao central para o cabo
+W_CABO  = 50.0                   # vao central: conector USB-C + alto-falante inferior
 T_FIN, Z_FIN = 12.0, 48.0        # nervuras traseiras
 
 
